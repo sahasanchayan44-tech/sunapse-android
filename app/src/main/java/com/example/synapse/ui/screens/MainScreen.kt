@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -121,7 +122,6 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
             }
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                // Background content with conditional blur for glass morphism effect
                 Box(modifier = Modifier
                     .fillMaxSize()
                     .then(if (showNotes) Modifier.blur(12.dp) else Modifier)
@@ -137,7 +137,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                                 onProfileClick = { isProfileOpen = true },
                                 onTrophyClick = { isLevelsTrailOpen = true }
                             )
-                            1 -> PlaceholderScreen("Quizzes Coming Soon")
+                            1 -> QuizzesScreen()
                             2 -> FlashcardsScreen(dialPosition = dialPosition)
                             3 -> GoalsScreen()
                             4 -> SettingsScreen(themeViewModel, authViewModel)
@@ -146,7 +146,6 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                     }
                 }
 
-                // Floating Notes Window with Glass Morphism UI
                 NotesFloatingWindow(isVisible = showNotes, onDismiss = { showNotes = false })
             }
         }
@@ -269,7 +268,7 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     
                     OutlinedTextField(
                         value = noteText,
@@ -402,7 +401,7 @@ fun ColumnScope.LogoutButton(onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.Logout,
+                imageVector = Icons.AutoMirrored.Filled.Logout,
                 contentDescription = null,
                 tint = Color.Red,
                 modifier = Modifier.size(24.dp)
@@ -468,7 +467,7 @@ fun SettingsScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel)
 
         SettingsTabCard(
             title = "Logout",
-            icon = Icons.Default.Logout,
+            icon = Icons.AutoMirrored.Filled.Logout,
             neonColor = Color.Red,
             cardBg = cardBg,
             onClick = { authViewModel.signOut() }
