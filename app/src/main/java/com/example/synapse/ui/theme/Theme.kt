@@ -1,7 +1,9 @@
 package com.example.synapse.ui.theme
 
 import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -21,17 +23,29 @@ private val LightColorScheme = lightColorScheme(
     onBackground = NeuTextPrimary
 )
 
+private val DarkColorScheme = darkColorScheme(
+    primary = Primary,
+    secondary = Secondary,
+    surface = DarkNeuBackground,
+    background = DarkNeuBackground,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onSurface = DarkNeuTextPrimary,
+    onBackground = DarkNeuTextPrimary
+)
+
 @Composable
 fun SynapseTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = LightColorScheme
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 

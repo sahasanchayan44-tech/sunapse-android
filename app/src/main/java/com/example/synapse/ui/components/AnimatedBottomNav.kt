@@ -1,5 +1,6 @@
 package com.example.synapse.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -11,13 +12,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -31,7 +35,8 @@ import androidx.compose.ui.unit.dp
  */
 data class NavItem(
     val icon: ImageVector,
-    val title: String
+    val title: String,
+    val selectedColor: Color = Color(0xFF6366F1)
 )
 
 /**
@@ -45,11 +50,16 @@ fun SynapseAnimatedBottomNav(
     items: List<NavItem>
 ) {
     // Configuration
-    val barHeight = 80.dp
-    val bubbleSize = 56.dp
-    val iconSize = 24.dp
-    val activeColor = Color.Black
-    val inactiveColor = Color.LightGray.copy(alpha = 0.6f)
+    val barHeight = 110.dp 
+    val bubbleSize = 72.dp 
+    val iconSize = 28.dp
+    
+    val activeItem = items[selectedIndex]
+    val activeColor by animateColorAsState(
+        targetValue = activeItem.selectedColor,
+        label = "activeColor"
+    )
+    val inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
     
     // We calculate the center X for the selected item to animate the bubble and the notch
     val density = LocalDensity.current
@@ -60,7 +70,7 @@ fun SynapseAnimatedBottomNav(
     val animatedX by animateFloatAsState(
         targetValue = targetX,
         animationSpec = spring(
-            dampingRatio = 0.7f, // Adds a slight springy bounce
+            dampingRatio = 0.7f,
             stiffness = Spring.StiffnessMedium
         ),
         label = "indicatorX"
@@ -69,19 +79,37 @@ fun SynapseAnimatedBottomNav(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(barHeight + 20.dp) // Extra height for the bubble overlap
+            .height(barHeight + 30.dp) // Increased box height for shadow
             .background(Color.Transparent),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // 1. The main white bar with the dynamic notch
+        // 1. The main bar with the dynamic notch and a custom shadow
+        val shadowColor = Color.Black.copy(alpha = 0.15f)
+        val notchWidth = with(density) { bubbleSize.toPx() }
+        
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(barHeight)
-                .padding(horizontal = 16.dp),
-            color = Color.White,
-            shape = CurvedBarShape(animatedX - with(density) { 16.dp.toPx() }, with(density) { bubbleSize.toPx() }),
-            shadowElevation = 8.dp
+                .drawBehind {
+                    drawIntoCanvas { canvas ->
+                        val paint = Paint()
+                        val frameworkPaint = paint.asFrameworkPaint()
+                        frameworkPaint.color = Color.Transparent.toArgb()
+                        frameworkPaint.setShadowLayer(
+                            12.dp.toPx(), // shadow radius
+                            0f,
+                            (-6).dp.toPx(), // offset shadow upwards
+                            shadowColor.toArgb()
+                        )
+                        val outline = CurvedBarShape(animatedX, notchWidth)
+                            .createOutline(size, layoutDirection, density)
+                        canvas.drawOutline(outline, paint)
+                    }
+                },
+            color = MaterialTheme.colorScheme.surface,
+            shape = CurvedBarShape(animatedX, notchWidth),
+            shadowElevation = 0.dp // Using custom shadow instead
         ) {
             // Row of icons
             Row(
@@ -98,13 +126,13 @@ fun SynapseAnimatedBottomNav(
                             }
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null // Remove default ripple to keep it clean like the video
+                                indication = null
                             ) {
                                 onItemSelected(index)
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        // Inactive icons (Active icon is handled by the floating bubble)
+                        // Inactive icons
                         Icon(
                             imageVector = item.icon,
                             contentDescription = item.title,
@@ -117,7 +145,6 @@ fun SynapseAnimatedBottomNav(
         }
 
         // 2. The Floating Bubble with the Active Icon
-        // This bubble glides over the notch
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -127,16 +154,16 @@ fun SynapseAnimatedBottomNav(
             Surface(
                 modifier = Modifier
                     .size(bubbleSize)
-                    .offset(y = 4.dp) // Slight lift above the bar
-                    .shadow(12.dp, CircleShape),
+                    .offset(y = 4.dp)
+                    .shadow(16.dp, CircleShape),
                 shape = CircleShape,
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = items[selectedIndex].icon,
                         contentDescription = null,
-                        modifier = Modifier.size(iconSize + 2.dp),
+                        modifier = Modifier.size(iconSize),
                         tint = activeColor
                     )
                 }
@@ -158,20 +185,15 @@ class CurvedBarShape(
         density: Density
     ): Outline {
         val path = Path().apply {
-            val curveWidth = bubbleSizePx * 1.8f
-            val curveHeight = bubbleSizePx * 0.45f
-            val cornerRadius = 32.dp.toPx(density) // Rounded bar corners
+            val curveWidth = bubbleSizePx * 2.2f 
+            val curveHeight = bubbleSizePx * 0.65f 
 
-            moveTo(0f, cornerRadius)
-            
-            // Top Left Corner
-            quadraticTo(0f, 0f, cornerRadius, 0f)
+            moveTo(0f, 0f)
             
             // Line to the start of the notch
             lineTo(centerX - curveWidth / 2f, 0f)
             
             // The Concave Notch (The "Dip")
-            // We use cubic Bezier to create a smooth, fluid transition
             cubicTo(
                 centerX - curveWidth / 4f, 0f,
                 centerX - curveWidth / 4f, curveHeight,
@@ -183,13 +205,10 @@ class CurvedBarShape(
                 centerX + curveWidth / 2f, 0f
             )
             
-            // Line to Top Right Corner
-            lineTo(size.width - cornerRadius, 0f)
+            // Line to Top Right
+            lineTo(size.width, 0f)
             
-            // Top Right Corner
-            quadraticTo(size.width, 0f, size.width, cornerRadius)
-            
-            // Bottom Right
+            // Close the rectangle
             lineTo(size.width, size.height)
             lineTo(0f, size.height)
             close()
@@ -197,6 +216,5 @@ class CurvedBarShape(
         return Outline.Generic(path)
     }
 
-    // Helper to convert Dp to Px inside the class
     private fun Dp.toPx(density: Density): Float = with(density) { this@toPx.toPx() }
 }

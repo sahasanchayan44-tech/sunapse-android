@@ -3,6 +3,7 @@ package com.example.synapse.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -14,9 +15,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.synapse.ui.theme.NeuBackground
-import com.example.synapse.ui.theme.NeuShadowDark
-import com.example.synapse.ui.theme.NeuShadowLight
+import com.example.synapse.ui.theme.*
 
 @Composable
 fun NeumorphicCard(
@@ -25,10 +24,18 @@ fun NeumorphicCard(
     elevation: Dp = 8.dp,
     content: @Composable () -> Unit
 ) {
+    val lightShadow = if (MaterialTheme.colorScheme.surface == NeuBackground) NeuShadowLight else DarkNeuShadowLight
+    val darkShadow = if (MaterialTheme.colorScheme.surface == NeuBackground) NeuShadowDark else DarkNeuShadowDark
+
     Box(
         modifier = modifier
-            .neuShadow(elevation = elevation, shape = shape)
-            .background(NeuBackground, shape)
+            .neuShadow(
+                elevation = elevation, 
+                shape = shape,
+                lightShadowColor = lightShadow,
+                darkShadowColor = darkShadow
+            )
+            .background(MaterialTheme.colorScheme.surface, shape)
     ) {
         content()
     }
@@ -61,7 +68,7 @@ fun Modifier.neuShadow(
 
         // Dark shadow (bottom-right)
         val paintDark = Paint().apply {
-            color = NeuBackground
+            color = Color.Transparent
         }
         val frameworkPaintDark = paintDark.asFrameworkPaint()
         frameworkPaintDark.setShadowLayer(
