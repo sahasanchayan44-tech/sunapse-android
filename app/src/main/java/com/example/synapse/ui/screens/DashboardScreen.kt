@@ -11,256 +11,243 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.synapse.auth.AuthViewModel
 import com.example.synapse.ui.components.NeumorphicCard
+import com.example.synapse.ui.theme.NeuTextPrimary
+import com.example.synapse.ui.theme.NeuTextSecondary
 
 @Composable
 fun DashboardScreen(authViewModel: AuthViewModel) {
     val user = authViewModel.currentUser
-    val firstName = user?.displayName?.split(" ")?.getOrNull(0) ?: "Scholar"
-
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 20.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        // Personalized Welcome Header
+        // Status Bar Info
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text(
-                    text = "Hello, $firstName",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    fontStyle = FontStyle.Italic,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Ready to fire some synapses?",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
+                Text("Jio 4G LTE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
+                Text("09:44 AM", fontSize = 10.sp, color = NeuTextSecondary)
             }
-            
-            NeumorphicCard(
-                modifier = Modifier.size(56.dp),
-                shape = CircleShape,
-                elevation = 4.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "Profile",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
+            Text("80%", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Neural Activity Progress Card
+        // Profile & Welcome Section
         NeumorphicCard(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(32.dp)
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "NEURAL ACTIVITY",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        "Level 12",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(12.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.65f)
-                            .fillMaxHeight()
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        Color(0xFF8B5CF6)
-                                    )
-                                )
-                            )
-                    )
+                    Text("August, 2020", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
+                    
+                    // Profile Image with Neumorphic Circle
+                    NeumorphicCard(
+                        modifier = Modifier.size(80.dp),
+                        shape = CircleShape,
+                        elevation = 4.dp
+                    ) {
+                        Box(modifier = Modifier.padding(4.dp)) {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                shape = CircleShape,
+                                color = Color.LightGray
+                            ) {
+                                // Placeholder for profile image
+                                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.padding(16.dp))
+                            }
+                        }
+                    }
+                    
+                    Text("09:44AM", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
+                Text(text = user?.displayName ?: "Sunday, 23", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
+                Text(text = user?.email ?: "manavik2@gmail.com", fontSize = 12.sp, color = NeuTextSecondary)
                 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    StatItem("Streak", "5 Days", Icons.Default.Whatshot)
-                    StatItem("Focus", "42h", Icons.Default.Timer)
-                    StatItem("Cards", "128", Icons.Default.Style)
-                }
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    "Welcome Back", 
+                    fontSize = 32.sp, 
+                    fontWeight = FontWeight.Black, 
+                    color = NeuTextPrimary
+                )
             }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            "QUICK ACTIONS",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Black,
-            fontStyle = FontStyle.Italic,
-            letterSpacing = 1.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Study Actions Grid
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            StudyActionCard(
-                modifier = Modifier.weight(1f),
-                title = "Flashcards",
-                subtitle = "Review 12 due",
-                icon = Icons.Default.Style,
-                color = Color(0xFFF59E0B)
-            )
-            StudyActionCard(
-                modifier = Modifier.weight(1f),
-                title = "Tutor AI",
-                subtitle = "Ask a question",
-                icon = Icons.Default.AutoFixHigh,
-                color = Color(0xFF8B5CF6)
-            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Recent Activity
-        Text(
-            "RECENT CONNECTIONS",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Black,
-            fontStyle = FontStyle.Italic,
-            letterSpacing = 1.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-        )
+        // Grid Layout for Music, Weather, etc.
+        Row(modifier = Modifier.fillMaxWidth()) {
+            // Left Column
+            Column(modifier = Modifier.weight(1f)) {
+                // Music Card
+                NeumorphicCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(RoundedCornerShape(16.dp)),
+                            color = Color.LightGray
+                        ) {
+                            Icon(Icons.Default.MusicNote, contentDescription = null, modifier = Modifier.padding(24.dp))
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Music", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Appointments Card
+                NeumorphicCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Appointments", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("• Muharram/Ashura", fontSize = 10.sp, color = NeuTextSecondary)
+                        Text("• Onam", fontSize = 10.sp, color = NeuTextSecondary)
+                        Text("• Onam", fontSize = 10.sp, color = NeuTextSecondary)
+                    }
+                }
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-        repeat(3) { index ->
-            RecentItem(
-                title = listOf("Organic Chemistry Quiz", "Neurobiology Flashcards", "Calculus AI Session")[index],
-                time = "2 hours ago",
-                score = listOf("85%", "New", "Completed")[index]
+                // Headlines Card
+                NeumorphicCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Text(
+                        "Headlines", 
+                        modifier = Modifier.padding(20.dp),
+                        fontSize = 20.sp, 
+                        fontWeight = FontWeight.Black, 
+                        color = NeuTextPrimary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(20.dp))
+
+            // Right Column
+            Column(modifier = Modifier.weight(1f)) {
+                // Now Playing Info
+                NeumorphicCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Humsafar (From \"Badrinath Ki Dulhania\")", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
+                        Text("Akhil Sachdeva, Mansheel Gujral", fontSize = 8.sp, color = NeuTextSecondary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Best Of Akhil Sachde...", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            progress = { 0.4f },
+                            modifier = Modifier.fillMaxWidth().height(2.dp),
+                            color = NeuTextPrimary,
+                            trackColor = Color.LightGray.copy(alpha = 0.3f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Media Controls
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {}) { Icon(Icons.Default.SkipPrevious, contentDescription = null) }
+                    NeumorphicCard(shape = CircleShape, elevation = 4.dp) {
+                        IconButton(onClick = {}) { Icon(Icons.Default.PlayArrow, contentDescription = null) }
+                    }
+                    IconButton(onClick = {}) { Icon(Icons.Default.SkipNext, contentDescription = null) }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Weather Card
+                NeumorphicCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Cloud, contentDescription = null, modifier = Modifier.size(48.dp), tint = NeuTextPrimary)
+                        Text("scattered clouds", fontSize = 10.sp, color = NeuTextSecondary)
+                        Text("Baldeo Bagh", fontSize = 10.sp, color = NeuTextSecondary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("29°C", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = NeuTextPrimary)
+                        Text("H: 31°C L: 24°C", fontSize = 10.sp, color = NeuTextSecondary)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Social Card
+                NeumorphicCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Box(modifier = Modifier.padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                        Text("Social", fontSize = 24.sp, fontWeight = FontWeight.Black, color = NeuTextPrimary)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Bottom Battery/System Card
+        NeumorphicCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Text(
+                "Battery level is 80%. Last unplugged 19 minutes ago. Expected Battery Time 01:24PM",
+                modifier = Modifier.padding(16.dp),
+                fontSize = 10.sp,
+                color = NeuTextSecondary,
+                lineHeight = 14.sp
             )
-            Spacer(modifier = Modifier.height(16.dp))
         }
         
-        Spacer(modifier = Modifier.height(100.dp))
-    }
-}
-
-@Composable
-fun StatItem(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
-        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-        Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-    }
-}
-
-@Composable
-fun StudyActionCard(
-    modifier: Modifier,
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    color: Color
-) {
-    NeumorphicCard(
-        modifier = modifier,
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = color.copy(alpha = 0.1f)
-            ) {
-                Icon(icon, contentDescription = null, modifier = Modifier.padding(8.dp), tint = color)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-        }
-    }
-}
-
-@Composable
-fun RecentItem(title: String, time: String, score: String) {
-    NeumorphicCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier.size(40.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
-                ) {
-                    Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-                    Text(time, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                }
-            }
-            Text(
-                text = score,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 14.sp
-            )
-        }
+        Spacer(modifier = Modifier.height(80.dp)) // Space for bottom nav
     }
 }
