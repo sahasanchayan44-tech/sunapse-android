@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -42,27 +43,28 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
     var showNotes by remember { mutableStateOf(false) }
     var isProfileOpen by remember { mutableStateOf(false) }
     var isLevelsTrailOpen by remember { mutableStateOf(false) }
+    var dialPosition by remember { mutableStateOf(0f) }
 
     val navItems = listOf(
-        NavItem(Icons.Default.Dashboard, "Dashboard", Color(0xFFA855F7)),
-        NavItem(Icons.Default.Memory, "Flashcards", Color(0xFFF59E0B)),
+        NavItem(Icons.Default.Dashboard, "Dashboard", Color(0xFF3B82F6)),
         NavItem(Icons.Default.Description, "Quizzes", Color(0xFF10B981)),
-        NavItem(Icons.Default.Flag, "Goals", Color(0xFFEC4899)),
+        NavItem(Icons.Default.Memory, "Flashcards", Color(0xFFF59E0B)),
+        NavItem(Icons.Default.Flag, "Goals", Color(0xFFFF3838)),
         NavItem(Icons.Default.Settings, "Settings", Color(0xFF64748B))
     )
 
     val drawerScreens = listOf(
         "Dashboard",
-        "Flashcards",
         "Quizzes",
+        "Flashcards",
         "Goals",
         "Settings"
     )
 
     val drawerIcons = listOf(
         Icons.Default.Dashboard,
-        Icons.Default.Memory,
         Icons.Default.Description,
+        Icons.Default.Memory,
         Icons.Default.Flag,
         Icons.Default.Settings
     )
@@ -99,7 +101,8 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                     SynapseAnimatedBottomNav(
                         selectedIndex = selectedIndex,
                         onItemSelected = { selectedIndex = it },
-                        items = navItems
+                        items = navItems,
+                        onDialUpdate = { dialPosition = it }
                     )
                 }
             },
@@ -109,7 +112,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                         onClick = { showNotes = !showNotes },
                         containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.onSurface,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = CircleShape,
                         modifier = Modifier.offset(y = (-20).dp)
                     ) {
                         Icon(imageVector = if (showNotes) Icons.Default.Close else Icons.Default.EditNote, contentDescription = "Notes", modifier = Modifier.size(28.dp))
@@ -118,79 +121,34 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
             }
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                if (isProfileOpen) {
-                    ProfileScreen(authViewModel, onBack = { isProfileOpen = false })
-                } else if (isLevelsTrailOpen) {
-                    LevelsTrailScreen(authViewModel, onBack = { isLevelsTrailOpen = false })
-                } else {
-                    when (selectedIndex) {
-                        0 -> DashboardScreen(
-                            authViewModel = authViewModel, 
-                            onProfileClick = { isProfileOpen = true },
-                            onTrophyClick = { isLevelsTrailOpen = true }
-                        )
-                        1 -> FlashcardsScreen()
-                        2 -> PlaceholderScreen("Quizzes Coming Soon")
-                        3 -> GoalsScreen()
-                        4 -> SettingsScreen(themeViewModel, authViewModel)
-                        else -> PlaceholderScreen(drawerScreens[selectedIndex])
+                // Background content with conditional blur for glass morphism effect
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (showNotes) Modifier.blur(12.dp) else Modifier)
+                ) {
+                    if (isProfileOpen) {
+                        ProfileScreen(authViewModel, themeViewModel, onBack = { isProfileOpen = false })
+                    } else if (isLevelsTrailOpen) {
+                        LevelsTrailScreen(authViewModel, onBack = { isLevelsTrailOpen = false })
+                    } else {
+                        when (selectedIndex) {
+                            0 -> DashboardScreen(
+                                authViewModel = authViewModel, 
+                                onProfileClick = { isProfileOpen = true },
+                                onTrophyClick = { isLevelsTrailOpen = true }
+                            )
+                            1 -> PlaceholderScreen("Quizzes Coming Soon")
+                            2 -> FlashcardsScreen(dialPosition = dialPosition)
+                            3 -> GoalsScreen()
+                            4 -> SettingsScreen(themeViewModel, authViewModel)
+                            else -> PlaceholderScreen(drawerScreens[selectedIndex])
+                        }
                     }
                 }
 
-                // Floating Notes Window
+                // Floating Notes Window with Glass Morphism UI
                 NotesFloatingWindow(isVisible = showNotes, onDismiss = { showNotes = false })
             }
-        }
-    }
-}
-
-@Composable
-fun SettingsScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
-    val isDark = isSystemInDarkTheme()
-    val neonColor = if (isDark) Color(0xFFBB86FC) else Color(0xFF6200EE)
-    val cardBg = MaterialTheme.colorScheme.surface
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Text(
-            text = "SETTINGS",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Black,
-            fontStyle = FontStyle.Italic,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-        
-        // Individual Settings Tabs (Cards)
-        SettingsTabCard(
-            title = if (themeViewModel.isDarkMode) "Dark Mode" else "Light Mode",
-            icon = if (themeViewModel.isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
-            neonColor = neonColor,
-            cardBg = cardBg
-        ) {
-            Switch(
-                checked = themeViewModel.isDarkMode,
-                onCheckedChange = { themeViewModel.toggleDarkMode() },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = neonColor,
-                    checkedTrackColor = neonColor.copy(alpha = 0.5f)
-                )
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SettingsTabCard(
-            title = "Logout",
-            icon = Icons.Default.Logout,
-            neonColor = Color.Red,
-            cardBg = cardBg,
-            onClick = { authViewModel.signOut() }
-        ) {
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Red.copy(alpha = 0.3f))
         }
     }
 }
@@ -255,6 +213,7 @@ fun SettingsTabCard(
 @Composable
 fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
     var noteText by remember { mutableStateOf("") }
+    val isDark = isSystemInDarkTheme()
 
     AnimatedVisibility(
         visible = isVisible,
@@ -265,21 +224,29 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.4f))
+                .background(if (isDark) Color.Black.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.1f))
                 .clickable { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
-            Card(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
-                    .height(400.dp)
+                    .height(450.dp)
                     .clickable(enabled = false) { },
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+                shape = RoundedCornerShape(32.dp),
+                color = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f),
+                border = BorderStroke(
+                    1.dp, 
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.5f),
+                            Color.White.copy(alpha = 0.1f)
+                        )
+                    )
+                ),
+                shadowElevation = if (isDark) 0.dp else 12.dp
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(24.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -287,18 +254,22 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
                     ) {
                         Text(
                             text = "QUICK NOTES",
-                            fontSize = 14.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Black,
                             fontStyle = FontStyle.Italic,
-                            letterSpacing = 1.sp,
-                            color = MaterialTheme.colorScheme.onSurface
+                            letterSpacing = 1.5.sp,
+                            color = if (isDark) Color.White else Color.Black
                         )
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                            Icon(
+                                Icons.Default.Close, 
+                                contentDescription = "Close", 
+                                tint = (if (isDark) Color.White else Color.Black).copy(alpha = 0.6f)
+                            )
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     OutlinedTextField(
                         value = noteText,
@@ -306,24 +277,42 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        placeholder = { Text("Write your thoughts here...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
+                        placeholder = { 
+                            Text(
+                                "Write your thoughts here...", 
+                                color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.4f)
+                            ) 
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                            cursorColor = MaterialTheme.colorScheme.onSurface
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            cursorColor = if (isDark) Color.White else Color.Black,
+                            focusedTextColor = if (isDark) Color.White else Color.Black,
+                            unfocusedTextColor = if (isDark) Color.White else Color.Black
                         ),
                         shape = RoundedCornerShape(16.dp)
                     )
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                     
                     Button(
                         onClick = { onDismiss() },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSurface)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .shadow(8.dp, RoundedCornerShape(16.dp)),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isDark) Color.White.copy(alpha = 0.2f) else Color.Black,
+                            contentColor = Color.White
+                        )
                     ) {
-                        Text("SAVE NOTE", fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.surface)
+                        Text(
+                            "SAVE NOTE", 
+                            fontWeight = FontWeight.ExtraBold, 
+                            fontStyle = FontStyle.Italic, 
+                            letterSpacing = 1.sp
+                        )
                     }
                 }
             }
@@ -435,5 +424,56 @@ fun PlaceholderScreen(text: String) {
         contentAlignment = Alignment.Center
     ) {
         Text(text = text, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+    }
+}
+
+@Composable
+fun SettingsScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
+    val isDark = isSystemInDarkTheme()
+    val neonColor = if (isDark) Color(0xFFBB86FC) else Color(0xFF6200EE)
+    val cardBg = MaterialTheme.colorScheme.surface
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+    ) {
+        Text(
+            text = "SETTINGS",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Black,
+            fontStyle = FontStyle.Italic,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+        
+        // Individual Settings Tabs (Cards)
+        SettingsTabCard(
+            title = if (themeViewModel.isDarkMode) "Dark Mode" else "Light Mode",
+            icon = if (themeViewModel.isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+            neonColor = neonColor,
+            cardBg = cardBg
+        ) {
+            Switch(
+                checked = themeViewModel.isDarkMode,
+                onCheckedChange = { themeViewModel.toggleDarkMode() },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = neonColor,
+                    checkedTrackColor = neonColor.copy(alpha = 0.5f)
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsTabCard(
+            title = "Logout",
+            icon = Icons.Default.Logout,
+            neonColor = Color.Red,
+            cardBg = cardBg,
+            onClick = { authViewModel.signOut() }
+        ) {
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Red.copy(alpha = 0.3f))
+        }
     }
 }

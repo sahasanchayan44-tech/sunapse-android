@@ -1,6 +1,7 @@
 package com.example.synapse.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -25,7 +27,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import com.example.synapse.ui.components.LevelTrophy
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Immutable
 data class FlashcardData(
@@ -37,7 +42,7 @@ data class FlashcardData(
 )
 
 @Composable
-fun FlashcardsScreen() {
+fun FlashcardsScreen(dialPosition: Float = 0f) {
     val isDark = isSystemInDarkTheme()
     val cards = remember {
         listOf(
@@ -50,6 +55,14 @@ fun FlashcardsScreen() {
     }
 
     val pagerState = rememberPagerState(pageCount = { cards.size })
+
+    // Synchronize pager with dial position from nav bar
+    LaunchedEffect(dialPosition) {
+        val targetPage = (dialPosition * (cards.size)).toInt().coerceIn(0, cards.size - 1)
+        if (pagerState.currentPage != targetPage) {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
 
     val titleColor = if (isDark) Color.White else Color(0xFF1A1A1A)
     val subtitleColor = if (isDark) Color.White.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.4f)
@@ -70,12 +83,52 @@ fun FlashcardsScreen() {
             )
             
             Text(
-                text = "Glide through your subjects",
+                text = "Glide using the dial below",
                 fontSize = 14.sp,
                 color = subtitleColor
             )
 
             Spacer(modifier = Modifier.height(20.dp))
+
+            // The Dial Markings visual at the top
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val width = size.width
+                    val height = size.height
+                    val centerX = width / 2
+                    val radius = 300.dp.toPx()
+                    
+                    for (i in -20..20) {
+                        val angle = (i * 2).toFloat()
+                        val radian = Math.toRadians(angle.toDouble() - 90).toFloat()
+                        val startX = centerX + (radius - 10.dp.toPx()) * cos(radian.toDouble()).toFloat()
+                        val startY = height + (radius - 10.dp.toPx()) * sin(radian.toDouble()).toFloat()
+                        val endX = centerX + radius * cos(radian.toDouble()).toFloat()
+                        val endY = height + radius * sin(radian.toDouble()).toFloat()
+                        
+                        drawLine(
+                            color = titleColor.copy(alpha = 0.1f),
+                            start = Offset(startX, startY),
+                            end = Offset(endX, endY),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
+                }
+                
+                Text(
+                    text = cards[pagerState.currentPage].title.uppercase(),
+                    color = titleColor,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 2.sp,
+                    modifier = Modifier.offset(y = (-20).dp)
+                )
+            }
 
             HorizontalPager(
                 state = pagerState,
@@ -84,9 +137,8 @@ fun FlashcardsScreen() {
                     .weight(1f),
                 contentPadding = PaddingValues(horizontal = 60.dp),
                 pageSpacing = 0.dp,
-                beyondViewportPageCount = 1 // Performance optimization: Preload only what's needed
+                beyondViewportPageCount = 1
             ) { page ->
-                // Derived state for smoother animations and fewer recompositions
                 val pageOffset = remember(pagerState) {
                     derivedStateOf {
                         ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
@@ -100,7 +152,7 @@ fun FlashcardsScreen() {
                 )
             }
             
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
@@ -111,7 +163,6 @@ fun FlashcardItem(
     pageOffsetProvider: () -> Float,
     isDark: Boolean
 ) {
-    // Cache colors and brushes to avoid allocations during recomposition
     val cardColors = remember(isDark, data) {
         FlashcardColors(
             content = if (isDark) Color.White else Color(0xFF1A1A1A),
@@ -147,7 +198,6 @@ fun FlashcardItem(
             },
         contentAlignment = Alignment.Center
     ) {
-        // Vibrant background glow - Optimizing by using graphicsLayer for alpha
         Box(
             modifier = Modifier
                 .fillMaxSize(0.95f)

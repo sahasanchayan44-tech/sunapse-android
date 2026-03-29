@@ -1,9 +1,7 @@
 package com.example.synapse.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -47,13 +45,14 @@ data class NavItem(
 
 /**
  * A highly polished, animated bottom navigation bar with a floating bubble
- * and a smooth "moving notch" effect that supports finger gliding.
+ * and a smooth "moving notch" effect that supports finger gliding and dial functionality.
  */
 @Composable
 fun SynapseAnimatedBottomNav(
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
-    items: List<NavItem>
+    items: List<NavItem>,
+    onDialUpdate: (Float) -> Unit = {}
 ) {
     // Configuration
     val barHeight = 80.dp 
@@ -68,6 +67,14 @@ fun SynapseAnimatedBottomNav(
     // Internal state for the drag position
     var dragOffset by remember { mutableStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
+
+    // Logic for "Standing up" when Flashcards (Index 2) is selected
+    val isFlashcardsSelected = selectedIndex == 2
+    val liftOffset by animateDpAsState(
+        targetValue = if (isFlashcardsSelected) (-24).dp else 0.dp,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow),
+        label = "liftOffset"
+    )
 
     // Calculate the target X position based on selected index or drag
     val targetX = if (itemWidthPx > 0) {
@@ -86,6 +93,13 @@ fun SynapseAnimatedBottomNav(
         ),
         label = "indicatorX"
     )
+
+    // Send position updates to parent if dragging on Flashcards
+    LaunchedEffect(animatedX, isDragging) {
+        if (isFlashcardsSelected && isDragging) {
+            onDialUpdate(animatedX / fullWidthPx)
+        }
+    }
 
     // Current active color based on position
     val currentActiveIndex = if (itemWidthPx > 0) (animatedX / itemWidthPx).toInt().coerceIn(0, items.size - 1) else selectedIndex
@@ -159,7 +173,7 @@ fun SynapseAnimatedBottomNav(
             }
         }
 
-        // Active Bubble with Dynamic Colored Shadow
+        // Active Bubble with Dynamic Colored Shadow and Lift Effect
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -169,19 +183,22 @@ fun SynapseAnimatedBottomNav(
         ) {
             Box(
                 modifier = Modifier
-                    .offset(x = with(density) { (animatedX - (notchWidth / 2)).toDp() })
+                    .offset(
+                        x = with(density) { (animatedX - (notchWidth / 2)).toDp() },
+                        y = liftOffset // Standing up effect
+                    )
                     .size(bubbleSize)
                     .drawBehind {
-                        if (!isDark) {
+                        if (!isDark || isFlashcardsSelected) {
                             drawIntoCanvas { canvas ->
                                 val paint = Paint()
                                 val frameworkPaint = paint.asFrameworkPaint()
                                 frameworkPaint.color = Color.Transparent.toArgb()
                                 frameworkPaint.setShadowLayer(
-                                    20.dp.toPx(),
+                                    24.dp.toPx(),
                                     0f,
                                     8.dp.toPx(),
-                                    activeColor.copy(alpha = 0.6f).toArgb()
+                                    activeColor.copy(alpha = if (isFlashcardsSelected) 0.8f else 0.6f).toArgb()
                                 )
                                 canvas.drawCircle(
                                     center = Offset(size.width / 2f, size.height / 2f),
@@ -200,8 +217,9 @@ fun SynapseAnimatedBottomNav(
                     .background(MaterialTheme.colorScheme.surface, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
+                // Flashcards Dial Icon (Pause style from reference when selected)
                 Icon(
-                    imageVector = items[currentActiveIndex].icon,
+                    imageVector = if (isFlashcardsSelected) Icons.Default.Pause else items[currentActiveIndex].icon,
                     contentDescription = null,
                     modifier = Modifier.size(iconSize + 4.dp),
                     tint = activeColor

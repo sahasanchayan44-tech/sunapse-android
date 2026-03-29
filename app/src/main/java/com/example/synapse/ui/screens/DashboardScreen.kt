@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -21,8 +20,6 @@ import androidx.compose.ui.unit.sp
 import com.example.synapse.auth.AuthViewModel
 import com.example.synapse.ui.components.LevelTrophy
 import com.example.synapse.ui.components.NeumorphicCard
-import java.text.SimpleDateFormat
-import java.util.*
 import kotlin.math.sin
 
 @Composable
@@ -32,17 +29,6 @@ fun DashboardScreen(authViewModel: AuthViewModel, onProfileClick: () -> Unit, on
     
     val primaryText = MaterialTheme.colorScheme.onSurface
     val accentColor = MaterialTheme.colorScheme.primary
-
-    // IST Time Synchronization
-    var currentTime by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
-        while (true) {
-            val sdf = SimpleDateFormat("MMM dd, yyyy | hh:mm a", Locale.ENGLISH)
-            sdf.timeZone = TimeZone.getTimeZone("Asia/Kolkata")
-            currentTime = sdf.format(Date())
-            kotlinx.coroutines.delay(1000)
-        }
-    }
     
     Box(
         modifier = Modifier.fillMaxSize()
@@ -94,71 +80,9 @@ fun DashboardScreen(authViewModel: AuthViewModel, onProfileClick: () -> Unit, on
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Welcome Section - Trophy Centered (Cleaned up as requested)
-            NeumorphicCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(32.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Current Level Trophy Interaction
-                        NeumorphicCard(
-                            modifier = Modifier.size(120.dp).clickable { onTrophyClick() },
-                            shape = CircleShape,
-                            elevation = 8.dp
-                        ) {
-                            Box(modifier = Modifier.padding(12.dp), contentAlignment = Alignment.Center) {
-                                LevelTrophy(level = stats.level, modifier = Modifier.fillMaxSize())
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(20.dp))
-                    
-                    // Unified Rank & Level Display
-                    Text(
-                        text = rankInfo.levelName, 
-                        fontSize = 24.sp, 
-                        fontWeight = FontWeight.Black, 
-                        color = primaryText,
-                        letterSpacing = (-0.5).sp
-                    )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    Text(
-                        "Progress Path", 
-                        fontSize = 32.sp, 
-                        fontWeight = FontWeight.Black, 
-                        color = primaryText.copy(alpha = 0.9f)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Study Progress Graph
-            StudyProgressGraph()
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Grid of Activity Cards
+            // Swapped Rows of Activity Cards
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    ActivityCard(modifier = Modifier.weight(1f)) {
-                        SubjectListContent(primaryText)
-                    }
-                    ActivityCard(modifier = Modifier.weight(1f)) {
-                        BigMetricWithGraphContent("6h 45m", "total study", accentColor)
-                    }
-                }
+                // Now showing the row that was previously below (Focus and chapters)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     ActivityCard(modifier = Modifier.weight(1f)) {
                         BigMetricWithWaveContent("88", "% accuracy", Color(0xFFFF4D00))
@@ -167,7 +91,22 @@ fun DashboardScreen(authViewModel: AuthViewModel, onProfileClick: () -> Unit, on
                         BigMetricWithBarsContent("12", "chapters", Color(0xFFFFAB40))
                     }
                 }
+                
+                // Now showing the row that was previously above (Subjects and study time)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    ActivityCard(modifier = Modifier.weight(1f)) {
+                        SubjectListContent(primaryText)
+                    }
+                    ActivityCard(modifier = Modifier.weight(1f)) {
+                        BigMetricWithGraphContent("6h 45m", "total study", accentColor)
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Study Progress Graph (Elevation graph)
+            StudyProgressGraph()
             
             Spacer(modifier = Modifier.height(80.dp))
         }

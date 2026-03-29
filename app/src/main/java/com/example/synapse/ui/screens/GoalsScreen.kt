@@ -26,7 +26,6 @@ import java.util.*
 
 @Composable
 fun GoalsScreen() {
-    val currentTime = remember { SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()) }
     val currentDate = remember { SimpleDateFormat("MMMM dd", Locale.getDefault()).format(Date()).uppercase() }
 
     val bgColor = MaterialTheme.colorScheme.background
@@ -74,21 +73,6 @@ fun GoalsScreen() {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 64.dp)
         ) {
-            // Time Pill
-            Surface(
-                color = contentColor,
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.padding(bottom = 32.dp)
-            ) {
-                Text(
-                    text = currentTime,
-                    color = bgColor,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Black,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
-                )
-            }
-
             Text(
                 text = "QUESTS",
                 fontSize = 28.sp,

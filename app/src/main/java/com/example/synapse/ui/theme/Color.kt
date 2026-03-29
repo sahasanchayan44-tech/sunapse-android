@@ -3,7 +3,7 @@ package com.example.synapse.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Light Mode Colors
-val NeuBackground = Color.White // Changed to pure white as requested
+val NeuBackground = Color.White // Pure white
 val NeuShadowLight = Color(0xFFFFFFFF)
 val NeuShadowDark = Color(0xFFD1D9E6)
 val NeuTextPrimary = Color(0xFF1A1A1A)
@@ -18,9 +18,9 @@ val DarkNeuShadowDark = Color(0xFF050508)
 val DarkNeuTextPrimary = Color(0xFFE0E0FF)
 val DarkNeuTextSecondary = Color(0xFFA0A0C0)
 val DarkNeuTextMuted = Color(0xFF606080)
-val DarkNeuTextAccent = Color(0xFF9D7CFF)
+val DarkNeuTextAccent = Color(0xFF3B82F6) // Updated to Blue "3B82F6"
 
-val Primary = Color(0xFF7C4DFF)
+val Primary = Color(0xFF3B82F6) // Dashboard primary color "3B82F6"
 val Secondary = Color(0xFFFFAB40)
 
 val Purple80 = Color(0xFFD0BCFF)

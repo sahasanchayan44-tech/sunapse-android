@@ -22,7 +22,7 @@ data class RankInfo(
 @Immutable
 data class UserProfileStats(
     val winLossRate: String = "70%",
-    val level: Int = 10, // Default start level for demonstration
+    val level: Int = 22, // Current level source of truth
     val totalDays: Int = 76,
     val currentStreak: Int = 35,
     val friendsOnline: Int = 14
@@ -72,6 +72,14 @@ class AuthViewModel : ViewModel() {
         auth.addAuthStateListener { firebaseAuth: FirebaseAuth ->
             currentUser = firebaseAuth.currentUser
         }
+    }
+
+    /**
+     * Updates the user's level. This will automatically update the 
+     * Rank, Title, and Trophy across the entire app.
+     */
+    fun updateLevel(newLevel: Int) {
+        userStats = userStats.copy(level = newLevel.coerceIn(1, 100))
     }
 
     fun signInWithEmail(email: String, password: String) {
