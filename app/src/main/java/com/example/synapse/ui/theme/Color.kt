@@ -2,11 +2,16 @@ package com.example.synapse.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+val NeuBackground = Color(0xFFF0F2F8)
+val NeuShadowLight = Color(0xFFFFFFFF)
+val NeuShadowDark = Color(0xFFAEB5C0)
+val NeuTextPrimary = Color(0xFF2D3436)
+val NeuTextSecondary = Color(0xFF636E72)
+
 val Primary = Color(0xFF6366F1)
 val Secondary = Color(0xFFF59E0B)
-val Surface = Color(0xFF1E293B)
-val Background = Color(0xFF020617)
-val CardBackground = Color(0xFF1E293B).copy(alpha = 0.4f)
+val Surface = Color(0xFFF0F2F8)
+val Background = Color(0xFFF0F2F8)
 
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)

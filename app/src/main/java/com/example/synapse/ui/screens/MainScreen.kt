@@ -1,5 +1,11 @@
 package com.example.synapse.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +22,11 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.synapse.ui.components.NavItem
+import com.example.synapse.ui.components.SynapseAnimatedBottomNav
+import com.example.synapse.ui.theme.NeuBackground
+import com.example.synapse.ui.theme.NeuTextPrimary
+import com.example.synapse.ui.theme.NeuTextSecondary
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -24,8 +35,17 @@ fun MainScreen() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedIndex by remember { mutableStateOf(0) }
+    var showNotes by remember { mutableStateOf(false) }
 
-    val screens = listOf(
+    val navItems = listOf(
+        NavItem(Icons.Default.Dashboard, "Dashboard"),
+        NavItem(Icons.Default.Memory, "Flashcards"),
+        NavItem(Icons.Default.Description, "Quizzes"),
+        NavItem(Icons.Default.AutoFixHigh, "Tutor AI"),
+        NavItem(Icons.Default.Settings, "Settings")
+    )
+
+    val drawerScreens = listOf(
         "Dashboard",
         "Flashcards",
         "Quizzes",
@@ -33,7 +53,7 @@ fun MainScreen() {
         "Settings"
     )
 
-    val icons = listOf(
+    val drawerIcons = listOf(
         Icons.Default.Dashboard,
         Icons.Default.Memory,
         Icons.Default.Description,
@@ -45,43 +65,143 @@ fun MainScreen() {
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = Color(0xFF020617),
+                drawerContainerColor = NeuBackground,
                 modifier = Modifier.width(300.dp)
             ) {
                 DrawerHeader()
                 Spacer(modifier = Modifier.height(12.dp))
-                screens.forEachIndexed { index, title ->
+                drawerScreens.forEachIndexed { index, title ->
                     DrawerItem(
                         title = title,
-                        icon = icons[index],
+                        icon = drawerIcons[index],
                         isSelected = selectedIndex == index
                     ) {
                         selectedIndex = index
                         scope.launch { drawerState.close() }
                     }
                 }
-                if (screens.size > 4) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
-                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.Black.copy(alpha = 0.05f))
                 Spacer(modifier = Modifier.weight(1f))
                 LogoutButton()
             }
         }
     ) {
         Scaffold(
+            containerColor = NeuBackground,
             bottomBar = {
-                if (selectedIndex < 4) {
-                    BottomNavBar(selectedIndex) { selectedIndex = it }
+                if (selectedIndex < 5) {
+                    Box(modifier = Modifier.padding(bottom = 20.dp)) {
+                        SynapseAnimatedBottomNav(
+                            selectedIndex = selectedIndex,
+                            onItemSelected = { selectedIndex = it },
+                            items = navItems
+                        )
+                    }
+                }
+            },
+            floatingActionButton = {
+                if (selectedIndex == 0) {
+                    FloatingActionButton(
+                        onClick = { showNotes = !showNotes },
+                        containerColor = Color.White,
+                        contentColor = NeuTextPrimary,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.offset(y = (-40).dp)
+                    ) {
+                        Icon(imageVector = if (showNotes) Icons.Default.Close else Icons.Default.EditNote, contentDescription = "Notes", modifier = Modifier.size(28.dp))
+                    }
                 }
             }
         ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                 when (selectedIndex) {
                     0 -> DashboardScreen()
                     1 -> PlaceholderScreen("Flashcards Coming Soon")
                     2 -> PlaceholderScreen("Quizzes Coming Soon")
                     3 -> PlaceholderScreen("Tutor AI Coming Soon")
-                    else -> PlaceholderScreen(screens[selectedIndex])
+                    else -> PlaceholderScreen(drawerScreens[selectedIndex])
+                }
+
+                // Floating Notes Window
+                NotesFloatingWindow(isVisible = showNotes, onDismiss = { showNotes = false })
+            }
+        }
+    }
+}
+
+@Composable
+fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
+    var noteText by remember { mutableStateOf("") }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.2f))
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(400.dp)
+                    .clickable(enabled = false) { },
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = NeuBackground),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "QUICK NOTES",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            fontStyle = FontStyle.Italic,
+                            letterSpacing = 1.sp,
+                            color = NeuTextPrimary
+                        )
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = NeuTextSecondary)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    OutlinedTextField(
+                        value = noteText,
+                        onValueChange = { noteText = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        placeholder = { Text("Write your thoughts here...", color = NeuTextSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.Black.copy(alpha = 0.05f),
+                            cursorColor = NeuTextPrimary
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Button(
+                        onClick = { onDismiss() },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = NeuTextPrimary)
+                    ) {
+                        Text("SAVE NOTE", fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic, color = Color.White)
+                    }
                 }
             }
         }
@@ -94,20 +214,21 @@ fun DrawerHeader() {
         modifier = Modifier
             .fillMaxWidth()
             .height(180.dp)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            .background(Color.White.copy(alpha = 0.5f)),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(
                 modifier = Modifier.size(64.dp),
-                color = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(16.dp)
+                color = Color.White,
+                shape = RoundedCornerShape(16.dp),
+                shadowElevation = 4.dp
             ) {
                 Icon(
                     imageVector = Icons.Default.Book,
                     contentDescription = null,
                     modifier = Modifier.padding(12.dp),
-                    tint = Color.White
+                    tint = NeuTextPrimary
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -117,7 +238,7 @@ fun DrawerHeader() {
                 fontWeight = FontWeight.Black,
                 fontStyle = FontStyle.Italic,
                 letterSpacing = 1.sp,
-                color = Color.White
+                color = NeuTextPrimary
             )
         }
     }
@@ -130,7 +251,7 @@ fun ColumnScope.DrawerItem(title: String, icon: ImageVector, isSelected: Boolean
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
             .clickable { onClick() },
-        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent,
+        color = if (isSelected) Color.White.copy(alpha = 0.5f) else Color.Transparent,
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -140,13 +261,13 @@ fun ColumnScope.DrawerItem(title: String, icon: ImageVector, isSelected: Boolean
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
+                tint = if (isSelected) NeuTextPrimary else NeuTextSecondary,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = title,
-                color = if (isSelected) Color.White else Color.Gray,
+                color = if (isSelected) NeuTextPrimary else NeuTextSecondary,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 fontStyle = FontStyle.Italic
             )
@@ -185,49 +306,11 @@ fun ColumnScope.LogoutButton() {
 }
 
 @Composable
-fun BottomNavBar(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
-    NavigationBar(
-        containerColor = Color(0xFF020617),
-        tonalElevation = 0.dp
-    ) {
-        val items = listOf("Dashboard", "Flashcards", "Quizzes", "Tutor AI")
-        val icons = listOf(
-            Icons.Default.Dashboard,
-            Icons.Default.Memory,
-            Icons.Default.Description,
-            Icons.Default.AutoFixHigh
-        )
-
-        items.forEachIndexed { index, label ->
-            NavigationBarItem(
-                selected = selectedIndex == index,
-                onClick = { onItemSelected(index) },
-                icon = { Icon(imageVector = icons[index], contentDescription = label) },
-                label = {
-                    Text(
-                        text = label,
-                        fontSize = 10.sp,
-                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Normal
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = Color.Gray,
-                    unselectedTextColor = Color.Gray,
-                    indicatorColor = Color.Transparent
-                )
-            )
-        }
-    }
-}
-
-@Composable
 fun PlaceholderScreen(text: String) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text, fontSize = 18.sp, color = Color.Gray)
+        Text(text = text, fontSize = 18.sp, color = NeuTextSecondary)
     }
 }
