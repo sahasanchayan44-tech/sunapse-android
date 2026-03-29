@@ -1,6 +1,7 @@
 package com.example.synapse.ui.screens
 
 import android.app.Activity
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -15,13 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.synapse.R
 import com.example.synapse.auth.AuthViewModel
 import com.example.synapse.ui.components.NeumorphicCard
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -46,7 +45,9 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                 val credential = GoogleAuthProvider.getCredential(account.idToken, null)
                 authViewModel.signInWithCredential(credential)
             } catch (e: ApiException) {
-                // Handle error
+                Log.e("GoogleSignIn", "Sign in failed: code=${e.statusCode}")
+                // Common error codes: 10 = DEVELOPER_ERROR (Check SHA-1 in Firebase Console)
+                // 12500 = SIGN_IN_FAILED
             }
         }
     }
@@ -162,6 +163,7 @@ fun LoginScreen(authViewModel: AuthViewModel) {
         ) {
             Button(
                 onClick = {
+                    // Replace with your Web Client ID from Firebase Console -> Authentication -> Sign-in Method -> Google
                     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                         .requestIdToken("1062036038534-web:5fbc7bfad1df7599ccc207.apps.googleusercontent.com")
                         .requestEmail()
