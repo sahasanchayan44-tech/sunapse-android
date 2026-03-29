@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1062036038534",
+    "project_id": "synapse-ea4a3",
+    "storage_bucket": "synapse-ea4a3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062036038534:android:c000409cc8eff08eccc207",
+        "android_client_info": {
+          "package_name": "com.example.synapse"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1062036038534-t5j3nrljs15m06tdsc1uj1g510oi4ls1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVI1Jzg_hyuf1sqyeYgQHQ1cU_X1DwL-8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1062036038534-t5j3nrljs15m06tdsc1uj1g510oi4ls1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

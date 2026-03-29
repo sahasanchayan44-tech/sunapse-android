@@ -2,22 +2,26 @@ package com.example.synapse.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light Mode Neumorphic Colors
-val NeuBackground = Color(0xFFF0F2F8)
+// Light Mode Colors
+val NeuBackground = Color.White // Changed to pure white as requested
 val NeuShadowLight = Color(0xFFFFFFFF)
-val NeuShadowDark = Color(0xFFAEB5C0)
-val NeuTextPrimary = Color(0xFF2D3436)
-val NeuTextSecondary = Color(0xFF636E72)
+val NeuShadowDark = Color(0xFFD1D9E6)
+val NeuTextPrimary = Color(0xFF1A1A1A)
+val NeuTextSecondary = Color(0xFF757575)
 
-// Dark Mode Neumorphic Colors
-val DarkNeuBackground = Color(0xFF1E1E2C)
-val DarkNeuShadowLight = Color(0xFF2D2D3F)
-val DarkNeuShadowDark = Color(0xFF0F0F18)
-val DarkNeuTextPrimary = Color(0xFFE0E0E0)
-val DarkNeuTextSecondary = Color(0xFFA0A0A0)
+// Dark Mode Colors - Blackish Violet
+val DarkNeuBackground = Color(0xFF0F0F1A) // Deep blackish violet
+val DarkNeuShadowLight = Color(0xFF1B1B2B)
+val DarkNeuShadowDark = Color(0xFF050508)
 
-val Primary = Color(0xFF6366F1)
-val Secondary = Color(0xFFF59E0B)
+// Optimized Dark Theme Text Colors
+val DarkNeuTextPrimary = Color(0xFFE0E0FF)
+val DarkNeuTextSecondary = Color(0xFFA0A0C0)
+val DarkNeuTextMuted = Color(0xFF606080)
+val DarkNeuTextAccent = Color(0xFF9D7CFF)
+
+val Primary = Color(0xFF7C4DFF)
+val Secondary = Color(0xFFFFAB40)
 
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)

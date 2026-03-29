@@ -6,7 +6,11 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
@@ -29,6 +34,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 /**
  * Data model for navigation items
@@ -41,7 +47,7 @@ data class NavItem(
 
 /**
  * A highly polished, animated bottom navigation bar with a floating bubble
- * and a smooth "moving notch" effect.
+ * and a smooth "moving notch" effect that supports finger gliding.
  */
 @Composable
 fun SynapseAnimatedBottomNav(
@@ -50,68 +56,78 @@ fun SynapseAnimatedBottomNav(
     items: List<NavItem>
 ) {
     // Configuration
-    val barHeight = 110.dp 
-    val bubbleSize = 72.dp 
-    val iconSize = 28.dp
+    val barHeight = 80.dp 
+    val bubbleSize = 64.dp 
+    val iconSize = 24.dp
+    val isDark = isSystemInDarkTheme()
     
-    val activeItem = items[selectedIndex]
-    val activeColor by animateColorAsState(
-        targetValue = activeItem.selectedColor,
-        label = "activeColor"
-    )
-    val inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-    
-    // We calculate the center X for the selected item to animate the bubble and the notch
     val density = LocalDensity.current
     var itemWidthPx by remember { mutableStateOf(0f) }
+    var fullWidthPx by remember { mutableStateOf(0f) }
     
-    // Smoothly animate the horizontal center position using Spring physics
-    val targetX = if (itemWidthPx > 0) (itemWidthPx * selectedIndex) + (itemWidthPx / 2f) else 0f
+    // Internal state for the drag position
+    var dragOffset by remember { mutableStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    // Calculate the target X position based on selected index or drag
+    val targetX = if (itemWidthPx > 0) {
+        if (isDragging) {
+            dragOffset.coerceIn(itemWidthPx / 2f, fullWidthPx - itemWidthPx / 2f)
+        } else {
+            (itemWidthPx * selectedIndex) + (itemWidthPx / 2f)
+        }
+    } else 0f
+
     val animatedX by animateFloatAsState(
         targetValue = targetX,
         animationSpec = spring(
-            dampingRatio = 0.7f,
-            stiffness = Spring.StiffnessMedium
+            dampingRatio = if (isDragging) 1f else 0.7f,
+            stiffness = if (isDragging) Spring.StiffnessHigh else Spring.StiffnessMedium
         ),
         label = "indicatorX"
     )
 
+    // Current active color based on position
+    val currentActiveIndex = if (itemWidthPx > 0) (animatedX / itemWidthPx).toInt().coerceIn(0, items.size - 1) else selectedIndex
+    val activeColor by animateColorAsState(
+        targetValue = items[currentActiveIndex].selectedColor,
+        label = "activeColor"
+    )
+    val inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(barHeight + 30.dp) // Increased box height for shadow
-            .background(Color.Transparent),
+            .wrapContentHeight()
+            .onGloballyPositioned { fullWidthPx = it.size.width.toFloat() }
+            .background(Color.Transparent)
+            .draggable(
+                orientation = Orientation.Horizontal,
+                state = rememberDraggableState { delta ->
+                    if (!isDragging) {
+                        isDragging = true
+                        dragOffset = (itemWidthPx * selectedIndex) + (itemWidthPx / 2f)
+                    }
+                    dragOffset += delta
+                },
+                onDragStopped = {
+                    isDragging = false
+                    val newIndex = (dragOffset / itemWidthPx).roundToInt().coerceIn(0, items.size - 1)
+                    onItemSelected(newIndex)
+                }
+            ),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // 1. The main bar with the dynamic notch and a custom shadow
-        val shadowColor = Color.Black.copy(alpha = 0.15f)
         val notchWidth = with(density) { bubbleSize.toPx() }
         
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(barHeight)
-                .drawBehind {
-                    drawIntoCanvas { canvas ->
-                        val paint = Paint()
-                        val frameworkPaint = paint.asFrameworkPaint()
-                        frameworkPaint.color = Color.Transparent.toArgb()
-                        frameworkPaint.setShadowLayer(
-                            12.dp.toPx(), // shadow radius
-                            0f,
-                            (-6).dp.toPx(), // offset shadow upwards
-                            shadowColor.toArgb()
-                        )
-                        val outline = CurvedBarShape(animatedX, notchWidth)
-                            .createOutline(size, layoutDirection, density)
-                        canvas.drawOutline(outline, paint)
-                    }
-                },
+                .height(barHeight),
             color = MaterialTheme.colorScheme.surface,
             shape = CurvedBarShape(animatedX, notchWidth),
-            shadowElevation = 0.dp // Using custom shadow instead
+            shadowElevation = 0.dp
         ) {
-            // Row of icons
             Row(
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically
@@ -132,49 +148,69 @@ fun SynapseAnimatedBottomNav(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        // Inactive icons
                         Icon(
                             imageVector = item.icon,
                             contentDescription = item.title,
                             modifier = Modifier.size(iconSize),
-                            tint = if (selectedIndex == index) Color.Transparent else inactiveColor
+                            tint = if (currentActiveIndex == index) Color.Transparent else inactiveColor
                         )
                     }
                 }
             }
         }
 
-        // 2. The Floating Bubble with the Active Icon
+        // Active Bubble with Dynamic Colored Shadow
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .offset(x = with(LocalDensity.current) { (animatedX - (bubbleSize.toPx() / 2)).toDp() }),
+                .fillMaxWidth()
+                .height(barHeight + (bubbleSize / 2))
+                .background(Color.Transparent),
             contentAlignment = Alignment.TopStart
         ) {
-            Surface(
+            Box(
                 modifier = Modifier
+                    .offset(x = with(density) { (animatedX - (notchWidth / 2)).toDp() })
                     .size(bubbleSize)
-                    .offset(y = 4.dp)
-                    .shadow(16.dp, CircleShape),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = items[selectedIndex].icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(iconSize),
-                        tint = activeColor
+                    .drawBehind {
+                        if (!isDark) {
+                            drawIntoCanvas { canvas ->
+                                val paint = Paint()
+                                val frameworkPaint = paint.asFrameworkPaint()
+                                frameworkPaint.color = Color.Transparent.toArgb()
+                                frameworkPaint.setShadowLayer(
+                                    20.dp.toPx(),
+                                    0f,
+                                    8.dp.toPx(),
+                                    activeColor.copy(alpha = 0.6f).toArgb()
+                                )
+                                canvas.drawCircle(
+                                    center = Offset(size.width / 2f, size.height / 2f),
+                                    radius = size.minDimension / 2.4f,
+                                    paint = paint
+                                )
+                            }
+                        }
+                    }
+                    .shadow(
+                        elevation = if (isDark) 12.dp else 2.dp,
+                        shape = CircleShape,
+                        spotColor = activeColor,
+                        ambientColor = activeColor
                     )
-                }
+                    .background(MaterialTheme.colorScheme.surface, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = items[currentActiveIndex].icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(iconSize + 4.dp),
+                    tint = activeColor
+                )
             }
         }
     }
 }
 
-/**
- * Custom Shape that draws a rectangle with a smooth concave "dip" at a specific X position.
- */
 class CurvedBarShape(
     private val centerX: Float,
     private val bubbleSizePx: Float
@@ -185,15 +221,12 @@ class CurvedBarShape(
         density: Density
     ): Outline {
         val path = Path().apply {
-            val curveWidth = bubbleSizePx * 2.2f 
-            val curveHeight = bubbleSizePx * 0.65f 
+            val curveWidth = bubbleSizePx * 2.1f 
+            val curveHeight = bubbleSizePx * 0.55f 
 
             moveTo(0f, 0f)
-            
-            // Line to the start of the notch
             lineTo(centerX - curveWidth / 2f, 0f)
             
-            // The Concave Notch (The "Dip")
             cubicTo(
                 centerX - curveWidth / 4f, 0f,
                 centerX - curveWidth / 4f, curveHeight,
@@ -205,16 +238,11 @@ class CurvedBarShape(
                 centerX + curveWidth / 2f, 0f
             )
             
-            // Line to Top Right
             lineTo(size.width, 0f)
-            
-            // Close the rectangle
             lineTo(size.width, size.height)
             lineTo(0f, size.height)
             close()
         }
         return Outline.Generic(path)
     }
-
-    private fun Dp.toPx(density: Density): Float = with(density) { this@toPx.toPx() }
 }

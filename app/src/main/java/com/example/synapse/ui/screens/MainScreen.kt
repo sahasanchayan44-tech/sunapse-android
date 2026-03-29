@@ -8,7 +8,9 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,6 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
@@ -36,12 +40,14 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
     val scope = rememberCoroutineScope()
     var selectedIndex by remember { mutableStateOf(0) }
     var showNotes by remember { mutableStateOf(false) }
+    var isProfileOpen by remember { mutableStateOf(false) }
+    var isLevelsTrailOpen by remember { mutableStateOf(false) }
 
     val navItems = listOf(
-        NavItem(Icons.Default.Dashboard, "Dashboard", Color(0xFF6366F1)),
+        NavItem(Icons.Default.Dashboard, "Dashboard", Color(0xFFA855F7)),
         NavItem(Icons.Default.Memory, "Flashcards", Color(0xFFF59E0B)),
         NavItem(Icons.Default.Description, "Quizzes", Color(0xFF10B981)),
-        NavItem(Icons.Default.AutoFixHigh, "Tutor AI", Color(0xFF8B5CF6)),
+        NavItem(Icons.Default.Flag, "Goals", Color(0xFFEC4899)),
         NavItem(Icons.Default.Settings, "Settings", Color(0xFF64748B))
     )
 
@@ -49,7 +55,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
         "Dashboard",
         "Flashcards",
         "Quizzes",
-        "Tutor AI",
+        "Goals",
         "Settings"
     )
 
@@ -57,7 +63,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
         Icons.Default.Dashboard,
         Icons.Default.Memory,
         Icons.Default.Description,
-        Icons.Default.AutoFixHigh,
+        Icons.Default.Flag,
         Icons.Default.Settings
     )
 
@@ -89,7 +95,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                if (selectedIndex < 5) {
+                if (selectedIndex < 5 && !isProfileOpen && !isLevelsTrailOpen) {
                     SynapseAnimatedBottomNav(
                         selectedIndex = selectedIndex,
                         onItemSelected = { selectedIndex = it },
@@ -98,7 +104,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                 }
             },
             floatingActionButton = {
-                if (selectedIndex == 0) {
+                if (selectedIndex == 0 && !isProfileOpen && !isLevelsTrailOpen) {
                     FloatingActionButton(
                         onClick = { showNotes = !showNotes },
                         containerColor = MaterialTheme.colorScheme.surface,
@@ -112,13 +118,23 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
             }
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                when (selectedIndex) {
-                    0 -> DashboardScreen(authViewModel)
-                    1 -> PlaceholderScreen("Flashcards Coming Soon")
-                    2 -> PlaceholderScreen("Quizzes Coming Soon")
-                    3 -> PlaceholderScreen("Tutor AI Coming Soon")
-                    4 -> SettingsScreen(themeViewModel, authViewModel)
-                    else -> PlaceholderScreen(drawerScreens[selectedIndex])
+                if (isProfileOpen) {
+                    ProfileScreen(authViewModel, onBack = { isProfileOpen = false })
+                } else if (isLevelsTrailOpen) {
+                    LevelsTrailScreen(authViewModel, onBack = { isLevelsTrailOpen = false })
+                } else {
+                    when (selectedIndex) {
+                        0 -> DashboardScreen(
+                            authViewModel = authViewModel, 
+                            onProfileClick = { isProfileOpen = true },
+                            onTrophyClick = { isLevelsTrailOpen = true }
+                        )
+                        1 -> FlashcardsScreen()
+                        2 -> PlaceholderScreen("Quizzes Coming Soon")
+                        3 -> GoalsScreen()
+                        4 -> SettingsScreen(themeViewModel, authViewModel)
+                        else -> PlaceholderScreen(drawerScreens[selectedIndex])
+                    }
                 }
 
                 // Floating Notes Window
@@ -130,6 +146,10 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
 
 @Composable
 fun SettingsScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
+    val isDark = isSystemInDarkTheme()
+    val neonColor = if (isDark) Color(0xFFBB86FC) else Color(0xFF6200EE)
+    val cardBg = MaterialTheme.colorScheme.surface
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -137,73 +157,97 @@ fun SettingsScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel)
     ) {
         Text(
             text = "SETTINGS",
-            fontSize = 24.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Black,
             fontStyle = FontStyle.Italic,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 32.dp)
         )
         
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        NeumorphicCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp)
+        // Individual Settings Tabs (Cards)
+        SettingsTabCard(
+            title = if (themeViewModel.isDarkMode) "Dark Mode" else "Light Mode",
+            icon = if (themeViewModel.isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+            neonColor = neonColor,
+            cardBg = cardBg
         ) {
-            Column {
-                Row(
+            Switch(
+                checked = themeViewModel.isDarkMode,
+                onCheckedChange = { themeViewModel.toggleDarkMode() },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = neonColor,
+                    checkedTrackColor = neonColor.copy(alpha = 0.5f)
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsTabCard(
+            title = "Logout",
+            icon = Icons.Default.Logout,
+            neonColor = Color.Red,
+            cardBg = cardBg,
+            onClick = { authViewModel.signOut() }
+        ) {
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Red.copy(alpha = 0.3f))
+        }
+    }
+}
+
+@Composable
+fun SettingsTabCard(
+    title: String,
+    icon: ImageVector,
+    neonColor: Color,
+    cardBg: Color,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(20.dp),
+                spotColor = neonColor.copy(alpha = 0.4f),
+                ambientColor = neonColor.copy(alpha = 0.4f)
+            ),
+        shape = RoundedCornerShape(20.dp),
+        color = cardBg,
+        border = BorderStroke(
+            1.dp, 
+            Brush.linearGradient(
+                listOf(Color.White.copy(alpha = 0.3f), Color.Transparent)
+            )
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(18.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
                     modifier = Modifier
-                        .padding(20.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(42.dp)
+                        .background(neonColor.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (themeViewModel.isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "Dark Mode",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Switch(
-                        checked = themeViewModel.isDarkMode,
-                        onCheckedChange = { themeViewModel.toggleDarkMode() },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                            checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                        )
-                    )
+                    Icon(imageVector = icon, contentDescription = null, tint = neonColor, modifier = Modifier.size(20.dp))
                 }
-                
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                
-                Row(
-                    modifier = Modifier
-                        .padding(20.dp)
-                        .fillMaxWidth()
-                        .clickable { authViewModel.signOut() },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Logout,
-                        contentDescription = null,
-                        tint = Color.Red
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = "Logout",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Red
-                    )
-                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
+            content()
         }
     }
 }

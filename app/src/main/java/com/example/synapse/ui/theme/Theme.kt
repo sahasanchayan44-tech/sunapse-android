@@ -20,18 +20,22 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = Color.White,
     onSecondary = Color.Black,
     onSurface = NeuTextPrimary,
+    onSurfaceVariant = NeuTextSecondary,
     onBackground = NeuTextPrimary
 )
 
 private val DarkColorScheme = darkColorScheme(
     primary = Primary,
     secondary = Secondary,
+    tertiary = DarkNeuTextAccent,
     surface = DarkNeuBackground,
     background = DarkNeuBackground,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onSurface = DarkNeuTextPrimary,
-    onBackground = DarkNeuTextPrimary
+    onSurfaceVariant = DarkNeuTextSecondary,
+    onBackground = DarkNeuTextPrimary,
+    outline = DarkNeuTextMuted
 )
 
 @Composable
