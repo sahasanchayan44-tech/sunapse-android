@@ -92,12 +92,12 @@ fun FlashcardItem(
                 scaleX = lerp(0.85f, 1f, fraction)
                 scaleY = lerp(0.85f, 1f, fraction)
                 
-                // FIXED: Removed alpha animation to keep tiles fully opaque
+                // Keep tiles fully opaque
                 alpha = 1f 
                 
                 cameraDistance = 12f * density
                 
-                // FIXED: Added clipping to the graphics layer to remove sharp corner artifacts
+                // Clipping to remove sharp corner artifacts
                 shape = RoundedCornerShape(32.dp)
                 clip = true
             }
@@ -117,7 +117,8 @@ fun FlashcardItem(
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = if (isDark) Color(0xFF121212).copy(alpha = 0.9f) else Color.White.copy(alpha = 0.9f),
+            // FIXED: Set alpha to 1.0f to make the card solid/opaque
+            color = if (isDark) Color(0xFF121212).copy(alpha = 1.0f) else Color.White.copy(alpha = 1.0f),
             shape = RoundedCornerShape(32.dp),
             border = BorderStroke(
                 1.5.dp, 
