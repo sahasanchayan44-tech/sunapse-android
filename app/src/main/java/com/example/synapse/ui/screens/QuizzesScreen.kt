@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -315,6 +316,7 @@ fun StaticQuizList(primaryText: Color, accentColor: Color, onStartQuiz: (QuizCat
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuizChatbot(
     primaryText: Color, 
@@ -323,6 +325,16 @@ fun QuizChatbot(
 ) {
     var message by remember { mutableStateOf("") }
     val chatHistory = remember { mutableStateListOf<ChatMessage>() }
+    var showFilter by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
+
+    val subjectCategories = listOf(
+        SubjectGroup("Science", listOf("Physics", "Chemistry", "Biology", "Astronomy", "Environmental Science"), Icons.Default.Science, Color(0xFF10B981)),
+        SubjectGroup("Mathematics", listOf("Algebra", "Calculus", "Statistics", "Geometry", "Trigonometry"), Icons.Default.Functions, Color(0xFF3B82F6)),
+        SubjectGroup("Tech", listOf("Coding", "Artificial Intelligence", "Cybersecurity", "Blockchain", "Data Science"), Icons.Default.Computer, Color(0xFF8B5CF6)),
+        SubjectGroup("Humanities", listOf("History", "Literature", "Philosophy", "Psychology", "Sociology"), Icons.Default.HistoryEdu, Color(0xFFF43F5E)),
+        SubjectGroup("Business", listOf("Economics", "Marketing", "Finance", "Management", "Entrepreneurship"), Icons.Default.BusinessCenter, Color(0xFFFFAB40))
+    )
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -337,7 +349,7 @@ fun QuizChatbot(
                 }
                 item {
                     ChatBubble(
-                        ChatMessage("Hello! I'm your AI Quiz assistant. Type a subject (e.g., 'Space', 'Biology') and I'll generate a random quiz for you!", false),
+                        ChatMessage("Hello! I'm your AI Quiz assistant. Type a subject or use the filter icon to select one!", false),
                         primaryText, accentColor, onStartAiQuiz
                     )
                 }
@@ -354,6 +366,11 @@ fun QuizChatbot(
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("Ask AI for a quiz...") },
                 shape = RoundedCornerShape(24.dp),
+                leadingIcon = {
+                    IconButton(onClick = { showFilter = true }) {
+                        Icon(Icons.Default.FilterList, contentDescription = "Filter Subjects", tint = accentColor)
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = accentColor,
                     unfocusedBorderColor = primaryText.copy(alpha = 0.1f)
@@ -366,15 +383,68 @@ fun QuizChatbot(
                         val userMsg = message
                         chatHistory.add(ChatMessage(userMsg, true))
                         message = ""
-                        
-                        // Mock AI Logic to "Generate" and offer a quiz
                         chatHistory.add(ChatMessage("I've generated a random quiz about '$userMsg'. Ready to start?", false))
-                        chatHistory.add(ChatMessage("START_QUIZ_ACTION|$userMsg", false)) // Signal for action
+                        chatHistory.add(ChatMessage("START_QUIZ_ACTION|$userMsg", false))
                     }
                 },
                 color = accentColor
             ) {
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.padding(12.dp))
+            }
+        }
+    }
+
+    if (showFilter) {
+        ModalBottomSheet(
+            onDismissRequest = { showFilter = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 48.dp)
+            ) {
+                Text(
+                    text = "Select a Subject",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+                
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    items(subjectCategories) { group ->
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(group.icon, contentDescription = null, tint = group.color, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = group.name.uppercase(),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = group.color,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(group.subjects) { subject ->
+                                    FilterChip(
+                                        onClick = {
+                                            message = subject
+                                            showFilter = false
+                                        },
+                                        label = { Text(subject) },
+                                        selected = false,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -426,6 +496,7 @@ fun ChatBubble(
     }
 }
 
+data class SubjectGroup(val name: String, val subjects: List<String>, val icon: ImageVector, val color: Color)
 data class QuizCategory(val name: String, val desc: String, val qCount: Int, val icon: ImageVector, val color: Color)
 data class QuizQuestion(val text: String, val options: List<String>, val correctIdx: Int)
 data class ChatMessage(val text: String, val isUser: Boolean)
