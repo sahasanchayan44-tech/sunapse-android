@@ -32,7 +32,7 @@ import com.example.synapse.auth.AuthViewModel
 import com.example.synapse.ui.ThemeViewModel
 import com.example.synapse.ui.components.NavItem
 import com.example.synapse.ui.components.SynapseAnimatedBottomNav
-import com.example.synapse.ui.components.NeumorphicCard
+import com.example.synapse.ui.components.FlashcardData
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,13 +45,13 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
     var isProfileOpen by remember { mutableStateOf(false) }
     var isLevelsTrailOpen by remember { mutableStateOf(false) }
     var dialPosition by remember { mutableStateOf(0f) }
+    var selectedFlashcard by remember { mutableStateOf<FlashcardData?>(null) }
 
     val navItems = listOf(
         NavItem(Icons.Default.Dashboard, "Dashboard", Color(0xFF3B82F6)),
         NavItem(Icons.Default.Description, "Quizzes", Color(0xFF10B981)),
         NavItem(Icons.Default.Memory, "Flashcards", Color(0xFFF59E0B)),
-        NavItem(Icons.Default.Flag, "Goals", Color(0xFFFF3838)),
-        NavItem(Icons.Default.Settings, "Settings", Color(0xFF64748B))
+        NavItem(Icons.Default.Flag, "Goals", Color(0xFFFF3838))
     )
 
     val drawerScreens = listOf(
@@ -98,7 +98,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                if (selectedIndex < 5 && !isProfileOpen && !isLevelsTrailOpen) {
+                if (selectedIndex < 4 && !isProfileOpen && !isLevelsTrailOpen && selectedFlashcard == null) {
                     SynapseAnimatedBottomNav(
                         selectedIndex = selectedIndex,
                         onItemSelected = { selectedIndex = it },
@@ -108,7 +108,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                 }
             },
             floatingActionButton = {
-                if (selectedIndex == 0 && !isProfileOpen && !isLevelsTrailOpen) {
+                if (selectedIndex == 0 && !isProfileOpen && !isLevelsTrailOpen && selectedFlashcard == null) {
                     FloatingActionButton(
                         onClick = { showNotes = !showNotes },
                         containerColor = MaterialTheme.colorScheme.surface,
@@ -127,15 +127,27 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                     .then(if (showNotes) Modifier.blur(12.dp) else Modifier)
                 ) {
                     if (isProfileOpen) {
-                        ProfileScreen(authViewModel, themeViewModel, onBack = { isProfileOpen = false })
+                        ProfileScreen(
+                            authViewModel = authViewModel, 
+                            themeViewModel = themeViewModel, 
+                            onBack = { isProfileOpen = false },
+                            onSettingsClick = { 
+                                selectedIndex = 4
+                                isProfileOpen = false 
+                            }
+                        )
                     } else if (isLevelsTrailOpen) {
                         LevelsTrailScreen(authViewModel, onBack = { isLevelsTrailOpen = false })
+                    } else if (selectedFlashcard != null) {
+                        FlashcardChaptersScreen(flashcard = selectedFlashcard!!, isDark = isSystemInDarkTheme(), onBack = { selectedFlashcard = null })
                     } else {
                         when (selectedIndex) {
                             0 -> DashboardScreen(
                                 authViewModel = authViewModel, 
                                 onProfileClick = { isProfileOpen = true },
-                                onTrophyClick = { isLevelsTrailOpen = true }
+                                onTrophyClick = { isLevelsTrailOpen = true },
+                                onFlashcardClick = { selectedFlashcard = it },
+                                dialPosition = dialPosition
                             )
                             1 -> QuizzesScreen()
                             2 -> FlashcardsScreen(dialPosition = dialPosition)

@@ -31,7 +31,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, onBack: () -> Unit) {
+fun ProfileScreen(
+    authViewModel: AuthViewModel, 
+    themeViewModel: ThemeViewModel, 
+    onBack: () -> Unit,
+    onSettingsClick: () -> Unit = {}
+) {
     val user = authViewModel.currentUser
     val stats = authViewModel.userStats
     val primaryText = MaterialTheme.colorScheme.onSurface
@@ -97,9 +102,18 @@ fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, 
                     .verticalScroll(rememberScrollState())
                     .padding(24.dp)
             ) {
-                // Back Button
-                IconButton(onClick = onBack, modifier = Modifier.align(Alignment.Start)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = primaryText)
+                // Header Row with Back and Settings
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = primaryText)
+                    }
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = primaryText)
+                    }
                 }
 
                 // Profile Image
