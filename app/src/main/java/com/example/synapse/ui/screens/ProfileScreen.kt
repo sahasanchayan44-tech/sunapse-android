@@ -21,26 +21,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.synapse.auth.AuthViewModel
 import com.example.synapse.ui.ThemeViewModel
-import com.example.synapse.ui.components.LevelTrophy
-import com.example.synapse.ui.components.NeumorphicCard
+import com.example.synapse.ui.components.*
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
 fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, onBack: () -> Unit) {
     val user = authViewModel.currentUser
+    val stats = authViewModel.userStats
     val isDark = isSystemInDarkTheme()
     val primaryText = MaterialTheme.colorScheme.onSurface
     val secondaryText = MaterialTheme.colorScheme.onSurfaceVariant
@@ -48,6 +45,7 @@ fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, 
     
     var showStudyPlanner by remember { mutableStateOf(false) }
     var selectedDayForPlanner by remember { mutableStateOf<String?>(null) }
+    var showFullStats by remember { mutableStateOf(false) }
 
     // Dynamic IST Week Calculation
     val weekData = remember {
@@ -109,7 +107,7 @@ fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, 
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = primaryText)
                 }
 
-                // Profile Image with Dashed Border
+                // Profile Image
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
@@ -159,22 +157,64 @@ fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, 
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Stats Row - Added Sync Coins
+                // Stats Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    StatItem(authViewModel.userStats.syncCoins.toString(), "Sync Coins", Icons.Default.MonetizationOn, Color(0xFFFFD700))
+                    StatItem(stats.syncCoins.toString(), "Sync Coins", Icons.Default.MonetizationOn, Color(0xFFFFD700))
                     VerticalDivider(modifier = Modifier.height(40.dp), color = secondaryText.copy(alpha = 0.2f))
-                    StatItem(authViewModel.userStats.level.toString(), "Level", Icons.Default.Verified, accentColor)
+                    StatItem(stats.level.toString(), "Level", Icons.Default.Verified, accentColor)
                     VerticalDivider(modifier = Modifier.height(40.dp), color = secondaryText.copy(alpha = 0.2f))
-                    StatItem(authViewModel.userStats.totalDays.toString(), "Days", Icons.Default.CalendarToday, accentColor)
+                    StatItem(stats.totalDays.toString(), "Days", Icons.Default.CalendarToday, accentColor)
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Weekly Calendar
+                // GRAPHS MOVED FROM DASHBOARD (Above Dates Bar)
+                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        ActivityCard(
+                            modifier = Modifier.weight(1f),
+                            onClick = { showFullStats = !showFullStats }
+                        ) {
+                            AccuracyMetricContent(
+                                accuracy = stats.accuracy,
+                                correct = stats.correctAnswers,
+                                wrong = stats.wrongAnswers
+                            )
+                        }
+                        ActivityCard(modifier = Modifier.weight(1f), timeframe = "MONTHLY") {
+                            BigMetricWithBarsContent("12", "chapters done", Color(0xFFFFAB40), showLabels = true)
+                        }
+                    }
+
+                    // Animated Stats View
+                    AnimatedVisibility(
+                        visible = showFullStats,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        YearlyAccuracyGraph(stats.yearlyStats, primaryText)
+                    }
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        ActivityCard(modifier = Modifier.weight(1f)) {
+                            SubjectListContent(stats.subjectsStudiedToday, primaryText)
+                        }
+                        ActivityCard(modifier = Modifier.weight(1f)) {
+                            BigMetricWithGraphContent("6h 45m", "total study", accentColor)
+                        }
+                    }
+
+                    // Elevation Graph (also a graph, kept with others)
+                    StudyProgressGraph()
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Weekly Calendar (IST) - "Dates Bar"
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -205,15 +245,13 @@ fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, 
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Integrated Settings Options
+                // Dark Mode Toggle
                 val neonColor = if (isDark) Color(0xFFBB86FC) else Color(0xFF6200EE)
-                val cardBg = MaterialTheme.colorScheme.surface
-
                 SettingsOptionCard(
                     title = if (themeViewModel.isDarkMode) "Dark Mode" else "Light Mode",
                     icon = if (themeViewModel.isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
                     neonColor = neonColor,
-                    cardBg = cardBg
+                    cardBg = MaterialTheme.colorScheme.surface
                 ) {
                     Switch(
                         checked = themeViewModel.isDarkMode,
@@ -231,58 +269,10 @@ fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, 
                     title = "Logout",
                     icon = Icons.AutoMirrored.Filled.Logout,
                     neonColor = Color.Red,
-                    cardBg = cardBg,
+                    cardBg = MaterialTheme.colorScheme.surface,
                     onClick = { authViewModel.signOut() }
                 ) {
                     Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Red.copy(alpha = 0.3f))
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Friends and Streak Cards
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Friends Card
-                    NeumorphicCard(
-                        modifier = Modifier.weight(0.4f).height(160.dp),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
-                            Row {
-                                repeat(3) {
-                                    Surface(
-                                        modifier = Modifier.size(32.dp).offset(x = (it * -10).dp),
-                                        shape = CircleShape,
-                                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface),
-                                        color = Color.LightGray
-                                    ) {}
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("Friends", fontWeight = FontWeight.Bold, color = primaryText)
-                            Text("${authViewModel.userStats.friendsOnline} online", fontSize = 12.sp, color = accentColor)
-                        }
-                    }
-
-                    // Keep it up Card
-                    NeumorphicCard(
-                        modifier = Modifier.weight(0.6f).height(160.dp),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Keep it up!", fontWeight = FontWeight.Bold, color = primaryText)
-                                Text("${authViewModel.userStats.currentStreak} days in a row", fontSize = 12.sp, color = secondaryText)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("you are here!", fontSize = 10.sp, color = secondaryText)
-                            }
-                            Icon(
-                                Icons.Default.EmojiEvents,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = accentColor
-                            )
-                        }
-                    }
                 }
                 
                 Spacer(modifier = Modifier.height(40.dp))
@@ -298,7 +288,6 @@ fun StudyPlannerScreen(
     authViewModel: AuthViewModel,
     onBack: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
     val primaryText = MaterialTheme.colorScheme.onSurface
     
     var tasks by remember { 
@@ -330,7 +319,6 @@ fun StudyPlannerScreen(
                 color = primaryText
             )
             Spacer(modifier = Modifier.weight(1f))
-            // Current Coins Display
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(4.dp))
@@ -390,7 +378,7 @@ fun StudyPlannerScreen(
                             this[index] = task to willBeCompleted
                         }
                         if (willBeCompleted) {
-                            authViewModel.addPoints(50) // Reward points for task completion
+                            authViewModel.addPoints(50)
                         }
                     }
                 )
