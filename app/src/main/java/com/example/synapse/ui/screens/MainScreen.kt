@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +34,7 @@ import com.example.synapse.ui.ThemeViewModel
 import com.example.synapse.ui.components.NavItem
 import com.example.synapse.ui.components.SynapseAnimatedBottomNav
 import com.example.synapse.ui.components.FlashcardData
+import com.example.synapse.ui.components.NeumorphicCard
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,14 +52,12 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
     val navItems = listOf(
         NavItem(Icons.Default.Dashboard, "Dashboard", Color(0xFF3B82F6)),
         NavItem(Icons.Default.Description, "Quizzes", Color(0xFF10B981)),
-        NavItem(Icons.Default.Memory, "Flashcards", Color(0xFFF59E0B)),
         NavItem(Icons.Default.Flag, "Goals", Color(0xFFFF3838))
     )
 
     val drawerScreens = listOf(
         "Dashboard",
         "Quizzes",
-        "Flashcards",
         "Goals",
         "Settings"
     )
@@ -65,7 +65,6 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
     val drawerIcons = listOf(
         Icons.Default.Dashboard,
         Icons.Default.Description,
-        Icons.Default.Memory,
         Icons.Default.Flag,
         Icons.Default.Settings
     )
@@ -98,7 +97,8 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                if (selectedIndex < 4 && !isProfileOpen && !isLevelsTrailOpen && selectedFlashcard == null) {
+                // Bottom bar only shows for the first 3 items (Dashboard, Quizzes, Goals)
+                if (selectedIndex < 3 && !isProfileOpen && !isLevelsTrailOpen && selectedFlashcard == null) {
                     SynapseAnimatedBottomNav(
                         selectedIndex = selectedIndex,
                         onItemSelected = { selectedIndex = it },
@@ -132,7 +132,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                             themeViewModel = themeViewModel, 
                             onBack = { isProfileOpen = false },
                             onSettingsClick = { 
-                                selectedIndex = 4
+                                selectedIndex = 3 // Settings is now at index 3
                                 isProfileOpen = false 
                             }
                         )
@@ -150,9 +150,8 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                                 dialPosition = dialPosition
                             )
                             1 -> QuizzesScreen()
-                            2 -> FlashcardsScreen(dialPosition = dialPosition)
-                            3 -> GoalsScreen()
-                            4 -> SettingsScreen(themeViewModel, authViewModel)
+                            2 -> GoalsScreen()
+                            3 -> SettingsScreen(themeViewModel, authViewModel)
                             else -> PlaceholderScreen(drawerScreens[selectedIndex])
                         }
                     }
@@ -228,102 +227,140 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn() + scaleIn(),
-        exit = fadeOut() + scaleOut(),
+        enter = fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.8f, animationSpec = tween(400)),
+        exit = fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.8f, animationSpec = tween(300)),
         modifier = Modifier.fillMaxSize()
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (isDark) Color.Black.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.1f))
+                .background(Color.Black.copy(alpha = 0.15f))
                 .clickable { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
-            Surface(
+            NeumorphicCard(
                 modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .height(450.dp)
+                    .fillMaxWidth(0.88f)
+                    .height(500.dp)
                     .clickable(enabled = false) { },
-                shape = RoundedCornerShape(32.dp),
-                color = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.8f),
-                border = BorderStroke(
-                    1.dp, 
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.White.copy(alpha = 0.5f),
-                            Color.White.copy(alpha = 0.1f)
-                        )
-                    )
-                ),
-                shadowElevation = if (isDark) 0.dp else 12.dp
+                shape = RoundedCornerShape(36.dp),
+                elevation = 12.dp
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "QUICK NOTES",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Black,
-                            fontStyle = FontStyle.Italic,
-                            letterSpacing = 1.5.sp,
-                            color = if (isDark) Color.White else Color.Black
+                // Glass effect overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = if (isDark) 0.08f else 0.7f),
+                                    Color.White.copy(alpha = if (isDark) 0.03f else 0.4f)
+                                )
+                            )
                         )
-                        IconButton(onClick = onDismiss) {
-                            Icon(
-                                Icons.Default.Close, 
-                                contentDescription = "Close", 
-                                tint = (if (isDark) Color.White else Color.Black).copy(alpha = 0.6f)
+                ) {
+                    Column(modifier = Modifier.padding(28.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "QUICK NOTES",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Black,
+                                    fontStyle = FontStyle.Italic,
+                                    letterSpacing = 2.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .width(40.dp)
+                                        .height(3.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.primary, 
+                                            RoundedCornerShape(2.dp)
+                                        )
+                                )
+                            }
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier
+                                    .background(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), 
+                                        CircleShape
+                                    )
+                                    .size(36.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close, 
+                                    contentDescription = "Close", 
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(20.dp))
+                        
+                        // Internal Neumorphic Input Area
+                        NeumorphicCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            shape = RoundedCornerShape(24.dp),
+                            elevation = 2.dp
+                        ) {
+                            OutlinedTextField(
+                                value = noteText,
+                                onValueChange = { noteText = it },
+                                modifier = Modifier.fillMaxSize(),
+                                placeholder = { 
+                                    Text(
+                                        "Capture your spark of genius...", 
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                        fontStyle = FontStyle.Italic
+                                    ) 
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    cursorColor = MaterialTheme.colorScheme.primary,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                shape = RoundedCornerShape(24.dp)
                             )
                         }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    OutlinedTextField(
-                        value = noteText,
-                        onValueChange = { noteText = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        placeholder = { 
+                        
+                        Spacer(modifier = Modifier.height(28.dp))
+                        
+                        Button(
+                            onClick = { onDismiss() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp)
+                                .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 0.dp,
+                                pressedElevation = 4.dp
+                            )
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = null)
+                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                "Write your thoughts here...", 
-                                color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.4f)
-                            ) 
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            cursorColor = if (isDark) Color.White else Color.Black,
-                            focusedTextColor = if (isDark) Color.White else Color.Black,
-                            unfocusedTextColor = if (isDark) Color.White else Color.Black
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    Button(
-                        onClick = { onDismiss() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .shadow(8.dp, RoundedCornerShape(16.dp)),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isDark) Color.White.copy(alpha = 0.2f) else Color.Black,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text(
-                            "SAVE NOTE", 
-                            fontWeight = FontWeight.ExtraBold, 
-                            fontStyle = FontStyle.Italic, 
-                            letterSpacing = 1.sp
-                        )
+                                "SAVE NOTE", 
+                                fontWeight = FontWeight.ExtraBold, 
+                                fontStyle = FontStyle.Italic, 
+                                letterSpacing = 1.5.sp
+                            )
+                        }
                     }
                 }
             }
