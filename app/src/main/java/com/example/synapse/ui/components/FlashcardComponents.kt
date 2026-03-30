@@ -81,6 +81,7 @@ fun FlashcardItem(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(0.65f)
+            .background(Color.Magenta.copy(alpha = 0.2f)) // DIAGNOSTIC: Outer Container (MAGENTA)
             .graphicsLayer {
                 val pageOffset = pageOffsetProvider()
                 val absOffset = abs(pageOffset)
@@ -110,7 +111,7 @@ fun FlashcardItem(
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = if (isDark) Color(0xFF121212).copy(alpha = 0.9f) else Color.White.copy(alpha = 0.9f),
+            color = Color.Green, // DIAGNOSTIC: Main Surface (GREEN)
             shape = RoundedCornerShape(32.dp),
             border = BorderStroke(
                 1.5.dp, 
@@ -127,11 +128,7 @@ fun FlashcardItem(
                         .fillMaxHeight(0.6f)
                         .align(Alignment.Center)
                         .blur(15.dp)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(data.startColor.copy(alpha = 0.4f), Color.Transparent)
-                            )
-                        )
+                        .background(Color.Blue) // DIAGNOSTIC: Inner Glow (BLUE)
                 )
 
                 Column(
