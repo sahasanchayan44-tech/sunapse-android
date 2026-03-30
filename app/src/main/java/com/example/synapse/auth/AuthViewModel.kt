@@ -10,6 +10,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import kotlin.math.roundToInt
 
 @Immutable
 data class RankInfo(
@@ -20,13 +21,41 @@ data class RankInfo(
 )
 
 @Immutable
+data class MonthlyStat(val month: String, val correct: Int, val wrong: Int) {
+    val accuracy: Int get() {
+        val total = correct + wrong
+        if (total == 0) return 0
+        return ((correct.toFloat() / total) * 100).roundToInt()
+    }
+}
+
+@Immutable
 data class UserProfileStats(
-    val winLossRate: String = "70%",
-    val level: Int = 22, // Current level source of truth
+    val correctAnswers: Int = 352,
+    val wrongAnswers: Int = 48,
+    val level: Int = 22,
     val totalDays: Int = 76,
     val currentStreak: Int = 35,
-    val friendsOnline: Int = 14
+    val friendsOnline: Int = 14,
+    val syncCoins: Int = 1250,
+    val totalPoints: Int = 450,
+    val subjectsStudiedToday: List<String> = listOf("Physics", "Mathematics", "Chemistry"),
+    val yearlyStats: List<MonthlyStat> = listOf(
+        MonthlyStat("Jan", 40, 10),
+        MonthlyStat("Feb", 45, 12),
+        MonthlyStat("Mar", 50, 8),
+        MonthlyStat("Apr", 38, 15),
+        MonthlyStat("May", 55, 5),
+        MonthlyStat("Jun", 60, 10),
+        MonthlyStat("Jul", 64, 8)
+    )
 ) {
+    val accuracy: Int get() {
+        val total = correctAnswers + wrongAnswers
+        if (total == 0) return 0
+        return ((correctAnswers.toFloat() / total) * 100).roundToInt()
+    }
+
     val rankInfo: RankInfo get() {
         val rankIdx = ((level - 1) / 10).coerceIn(0, 9) + 1
         val levelIdx = (level - 1) % 10
@@ -74,12 +103,29 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Updates the user's level. This will automatically update the 
-     * Rank, Title, and Trophy across the entire app.
-     */
     fun updateLevel(newLevel: Int) {
         userStats = userStats.copy(level = newLevel.coerceIn(1, 100))
+    }
+
+    /**
+     * Adds points to the user and converts them to Sync Coins.
+     * Conversion rule: Every 10 points added also adds 1 Sync Coin.
+     */
+    fun addPoints(points: Int) {
+        val newPoints = userStats.totalPoints + points
+        val coinsToAdd = points / 10 // Example conversion: 10 points = 1 Sync Coin
+        userStats = userStats.copy(
+            totalPoints = newPoints,
+            syncCoins = userStats.syncCoins + coinsToAdd
+        )
+    }
+
+    fun recordStudySession(subject: String) {
+        if (!userStats.subjectsStudiedToday.contains(subject)) {
+            userStats = userStats.copy(
+                subjectsStudiedToday = userStats.subjectsStudiedToday + subject
+            )
+        }
     }
 
     fun signInWithEmail(email: String, password: String) {

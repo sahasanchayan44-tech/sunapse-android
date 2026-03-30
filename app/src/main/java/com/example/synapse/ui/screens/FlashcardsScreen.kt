@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +36,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -73,9 +75,11 @@ fun FlashcardsScreen(dialPosition: Float = 0f) {
         targetState = selectedFlashcard,
         transitionSpec = {
             if (targetState != null) {
-                (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut())
+                (slideInVertically(animationSpec = spring(stiffness = Spring.StiffnessLow)) { it } + fadeIn())
+                    .togetherWith(slideOutVertically(animationSpec = spring(stiffness = Spring.StiffnessLow)) { -it } + fadeOut())
             } else {
-                (slideInVertically { -it } + fadeIn()).togetherWith(slideOutVertically { it } + fadeOut())
+                (slideInVertically(animationSpec = spring(stiffness = Spring.StiffnessLow)) { -it } + fadeIn())
+                    .togetherWith(slideOutVertically(animationSpec = spring(stiffness = Spring.StiffnessLow)) { it } + fadeOut())
             }
         },
         label = "FlashcardTransition"
@@ -98,9 +102,12 @@ fun FlashcardList(
     val pagerState = rememberPagerState(pageCount = { cards.size })
 
     LaunchedEffect(dialPosition) {
-        val targetPage = (dialPosition * (cards.size)).toInt().coerceIn(0, cards.size - 1)
+        val targetPage = (dialPosition * cards.size).toInt().coerceIn(0, cards.size - 1)
         if (pagerState.currentPage != targetPage) {
-            pagerState.animateScrollToPage(targetPage)
+            pagerState.animateScrollToPage(
+                targetPage,
+                animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy)
+            )
         }
     }
 
@@ -146,8 +153,8 @@ fun FlashcardList(
                     val radian = Math.toRadians(angle.toDouble() - 90).toFloat()
                     val startX = centerX + (radius - 8.dp.toPx()) * cos(radian.toDouble()).toFloat()
                     val startY = height + (radius - 8.dp.toPx()) * sin(radian.toDouble()).toFloat()
-                    val endX = centerX + radius * cos(radian.toDouble()).toFloat()
-                    val endY = height + radius * sin(radian.toDouble()).toFloat()
+                    val endX = centerX + radius * Math.cos(radian.toDouble()).toFloat()
+                    val endY = height + radius * Math.sin(radian.toDouble()).toFloat()
                     
                     drawLine(
                         color = titleColor.copy(alpha = 0.15f),
@@ -158,8 +165,12 @@ fun FlashcardList(
                 }
             }
             
+            val displaySubtitle = remember(pagerState.currentPage) {
+                cards[pagerState.currentPage].subtitle.uppercase()
+            }
+            
             Text(
-                text = cards[pagerState.currentPage].subtitle.uppercase(),
+                text = displaySubtitle,
                 color = titleColor,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Black,
@@ -175,7 +186,11 @@ fun FlashcardList(
                 .weight(1f),
             contentPadding = PaddingValues(horizontal = 64.dp),
             pageSpacing = 0.dp,
-            beyondViewportPageCount = 1
+            beyondViewportPageCount = 1,
+            flingBehavior = PagerDefaults.flingBehavior(
+                state = pagerState,
+                snapPositionalThreshold = 0.3f
+            )
         ) { page ->
             val pageOffset = remember(pagerState) {
                 derivedStateOf {
@@ -207,7 +222,7 @@ fun FlashcardItem(
         initialValue = -10f,
         targetValue = 10f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = EaseInOutSine),
+            animation = tween(2500, easing = EaseInOutSine),
             repeatMode = RepeatMode.Reverse
         ),
         label = "bobbing"
@@ -245,7 +260,7 @@ fun FlashcardItem(
         Box(
             modifier = Modifier
                 .fillMaxSize(0.9f)
-                .blur(60.dp)
+                .blur(20.dp) 
                 .graphicsLayer {
                     val pageOffset = pageOffsetProvider()
                     alpha = (0.7f - (abs(pageOffset) * 0.4f)).coerceIn(0f, 1f)
@@ -271,7 +286,7 @@ fun FlashcardItem(
                         .fillMaxWidth()
                         .fillMaxHeight(0.6f)
                         .align(Alignment.Center)
-                        .blur(40.dp)
+                        .blur(15.dp)
                         .background(
                             Brush.radialGradient(
                                 listOf(data.startColor.copy(alpha = 0.4f), Color.Transparent)
@@ -337,7 +352,7 @@ fun FlashcardItem(
                             imageVector = data.icon,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(40.dp).blur(1.dp)
+                            modifier = Modifier.size(40.dp)
                         )
                     }
 
@@ -433,12 +448,15 @@ fun FlashcardChaptersScreen(
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
+                val dragProgress = (offsetX.value / 500f).coerceIn(-1.5f, 1.5f)
+                val absDragProgress = abs(dragProgress).coerceIn(0f, 1f)
+
                 // Stack of cards
                 chapters.asReversed().forEachIndexed { indexFromEnd, chapter ->
                     val index = chapters.size - 1 - indexFromEnd
                     if (index >= topCardIndex) {
                         val isTopCard = index == topCardIndex
-                        val cardOffset = (index - topCardIndex) * 20
+                        val distanceToTop = index - topCardIndex
                         
                         ChapterCard(
                             title = chapter,
@@ -448,13 +466,24 @@ fun FlashcardChaptersScreen(
                                 .fillMaxWidth(0.85f)
                                 .height(400.dp)
                                 .graphicsLayer {
-                                    val dragProgress = if (isTopCard) offsetX.value / 500f else 0f
                                     translationX = if (isTopCard) offsetX.value else 0f
-                                    translationY = (cardOffset.dp.toPx() * (1f - abs(dragProgress))).coerceAtLeast(0f)
-                                    scaleX = 1f - (index - topCardIndex) * 0.05f + abs(dragProgress) * 0.05f
-                                    scaleY = 1f - (index - topCardIndex) * 0.05f + abs(dragProgress) * 0.05f
-                                    alpha = 1f - (index - topCardIndex) * 0.2f + abs(dragProgress) * 0.2f
-                                    rotationZ = if (isTopCard) offsetX.value / 20f else 0f
+                                    
+                                    // Smoothly transition the offset, scale and alpha of cards based on drag
+                                    val currentY = distanceToTop * 20.dp.toPx()
+                                    val nextY = (distanceToTop - 1).coerceAtLeast(0) * 20.dp.toPx()
+                                    translationY = lerp(currentY, nextY, absDragProgress)
+                                    
+                                    val currentScale = 1f - distanceToTop * 0.05f
+                                    val nextScale = 1f - (distanceToTop - 1).coerceAtLeast(0) * 0.05f
+                                    val scale = lerp(currentScale, nextScale, absDragProgress)
+                                    scaleX = scale
+                                    scaleY = scale
+                                    
+                                    val currentAlpha = 1f - distanceToTop * 0.2f
+                                    val nextAlpha = 1f - (distanceToTop - 1).coerceAtLeast(0) * 0.2f
+                                    alpha = lerp(currentAlpha, nextAlpha, absDragProgress).coerceIn(0f, 1f)
+
+                                    rotationZ = if (isTopCard) offsetX.value / 25f else 0f
                                 }
                                 .then(
                                     if (isTopCard) {
@@ -463,10 +492,15 @@ fun FlashcardChaptersScreen(
                                             state = rememberDraggableState { delta ->
                                                 scope.launch { offsetX.snapTo(offsetX.value + delta) }
                                             },
-                                            onDragStopped = {
-                                                if (abs(offsetX.value) > 300f) {
-                                                    val target = if (offsetX.value > 0) 1000f else -1000f
-                                                    offsetX.animateTo(target, tween(300))
+                                            onDragStopped = { velocity ->
+                                                val shouldDismiss = abs(velocity) > 1000f || abs(offsetX.value) > 300f
+                                                if (shouldDismiss) {
+                                                    val target = if (velocity > 0 || (velocity == 0f && offsetX.value > 0)) 1000f else -1000f
+                                                    offsetX.animateTo(
+                                                        targetValue = target,
+                                                        initialVelocity = velocity,
+                                                        animationSpec = tween(400, easing = LinearOutSlowInEasing)
+                                                    )
                                                     if (topCardIndex < chapters.size - 1) {
                                                         topCardIndex++
                                                         offsetX.snapTo(0f)
@@ -474,7 +508,14 @@ fun FlashcardChaptersScreen(
                                                         onBack()
                                                     }
                                                 } else {
-                                                    offsetX.animateTo(0f, spring())
+                                                    offsetX.animateTo(
+                                                        targetValue = 0f,
+                                                        initialVelocity = velocity,
+                                                        animationSpec = spring(
+                                                            dampingRatio = Spring.DampingRatioLowBouncy,
+                                                            stiffness = Spring.StiffnessMediumLow
+                                                        )
+                                                    )
                                                 }
                                             }
                                         )
@@ -498,6 +539,7 @@ fun FlashcardChaptersScreen(
             Text(
                 "Swipe card to see next chapter",
                 fontSize = 12.sp,
+                textAlign = TextAlign.Center,
                 color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.5f)
             )
             

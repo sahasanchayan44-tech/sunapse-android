@@ -1,5 +1,6 @@
 package com.example.synapse.ui.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -10,14 +11,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.synapse.auth.AuthViewModel
+import com.example.synapse.auth.MonthlyStat
 import com.example.synapse.ui.components.LevelTrophy
 import com.example.synapse.ui.components.NeumorphicCard
 import kotlin.math.sin
@@ -30,6 +34,8 @@ fun DashboardScreen(authViewModel: AuthViewModel, onProfileClick: () -> Unit, on
     val primaryText = MaterialTheme.colorScheme.onSurface
     val accentColor = MaterialTheme.colorScheme.primary
     
+    var showFullStats by remember { mutableStateOf(false) }
+    
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -39,7 +45,7 @@ fun DashboardScreen(authViewModel: AuthViewModel, onProfileClick: () -> Unit, on
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
-            // Rank Header Row (Top tab showing current rank)
+            // Rank Header Row
             NeumorphicCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -80,22 +86,35 @@ fun DashboardScreen(authViewModel: AuthViewModel, onProfileClick: () -> Unit, on
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Swapped Rows of Activity Cards
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                // Now showing the row that was previously below (Focus and chapters)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    ActivityCard(modifier = Modifier.weight(1f)) {
-                        BigMetricWithWaveContent("88", "% accuracy", Color(0xFFFF4D00))
+                    ActivityCard(
+                        modifier = Modifier.weight(1f),
+                        onClick = { showFullStats = !showFullStats }
+                    ) {
+                        AccuracyMetricContent(
+                            accuracy = stats.accuracy,
+                            correct = stats.correctAnswers,
+                            wrong = stats.wrongAnswers
+                        )
                     }
-                    ActivityCard(modifier = Modifier.weight(1f)) {
-                        BigMetricWithBarsContent("12", "chapters", Color(0xFFFFAB40))
+                    ActivityCard(modifier = Modifier.weight(1f), timeframe = "MONTHLY") {
+                        BigMetricWithBarsContent("12", "chapters done", Color(0xFFFFAB40), showLabels = true)
                     }
                 }
                 
-                // Now showing the row that was previously above (Subjects and study time)
+                // Animated Stats View
+                AnimatedVisibility(
+                    visible = showFullStats,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    YearlyAccuracyGraph(stats.yearlyStats, primaryText)
+                }
+                
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     ActivityCard(modifier = Modifier.weight(1f)) {
-                        SubjectListContent(primaryText)
+                        SubjectListContent(stats.subjectsStudiedToday, primaryText)
                     }
                     ActivityCard(modifier = Modifier.weight(1f)) {
                         BigMetricWithGraphContent("6h 45m", "total study", accentColor)
@@ -104,19 +123,77 @@ fun DashboardScreen(authViewModel: AuthViewModel, onProfileClick: () -> Unit, on
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            // Study Progress Graph (Elevation graph)
             StudyProgressGraph()
-            
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
 @Composable
-fun ActivityCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun YearlyAccuracyGraph(stats: List<MonthlyStat>, primaryText: Color) {
     NeumorphicCard(
-        modifier = modifier.aspectRatio(0.85f),
+        modifier = Modifier.fillMaxWidth().height(200.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = 4.dp
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "YEARLY ACCURACY",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                stats.forEach { stat ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(8.dp)
+                                .fillMaxHeight(0.8f)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(primaryText.copy(alpha = 0.05f)),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(stat.accuracy / 100f)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                                        )
+                                    )
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(stat.month, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = primaryText.copy(alpha = 0.4f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActivityCard(
+    modifier: Modifier = Modifier, 
+    timeframe: String = "TODAY", 
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    NeumorphicCard(
+        modifier = modifier
+            .aspectRatio(0.85f)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = RoundedCornerShape(28.dp),
         elevation = 6.dp
     ) {
@@ -126,7 +203,7 @@ fun ActivityCard(modifier: Modifier = Modifier, content: @Composable () -> Unit)
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Stats", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text("TODAY", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                Text(timeframe, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
             }
             Box(modifier = Modifier.fillMaxSize().padding(top = 20.dp)) {
                 content()
@@ -136,18 +213,91 @@ fun ActivityCard(modifier: Modifier = Modifier, content: @Composable () -> Unit)
 }
 
 @Composable
-fun SubjectListContent(primaryText: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-        SubjectItem("Physics", Icons.Default.Bolt, Color(0xFF00D2FF), primaryText)
-        SubjectItem("Math", Icons.Default.Functions, Color(0xFFFF4D00), primaryText)
-        SubjectItem("History", Icons.Default.HistoryEdu, Color(0xFFFFAB40), primaryText)
+fun AccuracyMetricContent(accuracy: Int, correct: Int, wrong: Int) {
+    val waveColor = Color(0xFFFF4D00)
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("$accuracy", fontSize = 32.sp, fontWeight = FontWeight.Black)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("% ACCURACY", fontSize = 10.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 6.dp))
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("CORRECT", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                Text("$correct", fontSize = 14.sp, fontWeight = FontWeight.Black)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("WRONG", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF43F5E))
+                Text("$wrong", fontSize = 14.sp, fontWeight = FontWeight.Black)
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+        
+        Canvas(modifier = Modifier.fillMaxWidth().height(40.dp)) {
+            val width = size.width
+            val height = size.height
+            val points = 50
+            val path = Path()
+            for (i in 0..points) {
+                val x = width * i / points
+                val y = height / 2 + sin(i.toFloat() / 5) * (height / 3)
+                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            drawPath(path, waveColor, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+        }
+    }
+}
+
+@Composable
+fun SubjectListContent(subjects: List<String>, primaryText: Color) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "STUDIED TODAY",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        if (subjects.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "No study recorded yet.",
+                    fontSize = 12.sp,
+                    color = primaryText.copy(alpha = 0.4f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                subjects.take(3).forEach { subject ->
+                    val (icon, color) = getSubjectMetadata(subject)
+                    SubjectItem(subject, icon, color, primaryText)
+                }
+            }
+        }
+    }
+}
+
+private fun getSubjectMetadata(subject: String): Pair<ImageVector, Color> {
+    return when (subject.lowercase()) {
+        "physics" -> Icons.Default.Bolt to Color(0xFF00D2FF)
+        "math", "mathematics" -> Icons.Default.Functions to Color(0xFFFF4D00)
+        "chemistry" -> Icons.Default.Science to Color(0xFF10B981)
+        "history" -> Icons.Default.HistoryEdu to Color(0xFFFFAB40)
+        "biology", "nature" -> Icons.Default.Nature to Color(0xFF38EF7D)
+        else -> Icons.Default.AutoAwesome to Color(0xFF8B5CF6)
     }
 }
 
 @Composable
 fun SubjectItem(name: String, icon: ImageVector, iconColor: Color, textColor: Color) {
     Surface(
-        modifier = Modifier.fillMaxWidth().height(40.dp),
+        modifier = Modifier.fillMaxWidth().height(36.dp),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
     ) {
@@ -157,7 +307,7 @@ fun SubjectItem(name: String, icon: ImageVector, iconColor: Color, textColor: Co
         ) {
             Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(name, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+            Text(name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = textColor)
         }
     }
 }
@@ -168,7 +318,7 @@ fun BigMetricWithGraphContent(value: String, subtext: String, graphColor: Color)
         Text(value, fontSize = 28.sp, fontWeight = FontWeight.Black)
         Text(subtext, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         Spacer(modifier = Modifier.weight(1f))
-        Canvas(modifier = Modifier.fillMaxWidth().height(40.dp)) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(50.dp)) {
             val path = Path()
             val points = listOf(0.8f, 0.7f, 0.4f, 0.35f, 0.5f, 0.45f, 0.2f, 0.3f, 0.6f)
             points.forEachIndexed { index, p ->
@@ -191,54 +341,11 @@ fun BigMetricWithGraphContent(value: String, subtext: String, graphColor: Color)
                 brush = Brush.verticalGradient(listOf(graphColor.copy(alpha = 0.3f), Color.Transparent))
             )
         }
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-            repeat(3) { i ->
-                Box(modifier = Modifier.padding(2.dp).size(4.dp).background(if(i==1) graphColor else Color.Gray.copy(alpha = 0.3f), CircleShape))
-            }
-        }
     }
 }
 
 @Composable
-fun BigMetricWithWaveContent(value: String, subtext: String, waveColor: Color) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(value, fontSize = 32.sp, fontWeight = FontWeight.Black)
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(subtext.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
-        }
-        Spacer(modifier = Modifier.weight(1f))
-        Canvas(modifier = Modifier.fillMaxWidth().height(50.dp)) {
-            val width = size.width
-            val height = size.height
-            val points = 50
-            val path = Path()
-            for (i in 0..points) {
-                val x = width * i / points
-                val y = height / 2 + sin(i.toFloat() / 5) * (height / 3)
-                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            drawPath(path, waveColor, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
-            val path2 = Path()
-            for (i in 0..points) {
-                val x = width * i / points
-                val y = height / 2 + sin(i.toFloat() / 5 + 2f) * (height / 4)
-                if (i == 0) path2.moveTo(x, y) else path2.lineTo(x, y)
-            }
-            drawPath(path2, waveColor.copy(alpha = 0.3f), style = Stroke(width = 1.dp.toPx()))
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-            repeat(3) { i ->
-                Box(modifier = Modifier.padding(2.dp).size(4.dp).background(if(i==0) waveColor else Color.Gray.copy(alpha = 0.3f), CircleShape))
-            }
-        }
-    }
-}
-
-@Composable
-fun BigMetricWithBarsContent(value: String, subtext: String, barColor: Color) {
+fun BigMetricWithBarsContent(value: String, subtext: String, barColor: Color, showLabels: Boolean = false) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(value, fontSize = 32.sp, fontWeight = FontWeight.Black)
@@ -246,25 +353,33 @@ fun BigMetricWithBarsContent(value: String, subtext: String, barColor: Color) {
             Text(subtext, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), modifier = Modifier.padding(bottom = 4.dp))
         }
         Spacer(modifier = Modifier.weight(1f))
-        Row(
-            modifier = Modifier.fillMaxWidth().height(60.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            val heights = listOf(0.4f, 0.8f, 0.5f, 1f, 0.6f, 0.9f, 0.3f)
-            heights.forEachIndexed { i, h ->
-                Box(
-                    modifier = Modifier
-                        .width(6.dp)
-                        .fillMaxHeight(h)
-                        .background(if(i==3) barColor else Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-                )
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(60.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                val heights = listOf(0.4f, 0.8f, 0.5f, 1f, 0.6f, 0.9f, 0.3f)
+                heights.forEachIndexed { i, h ->
+                    Box(
+                        modifier = Modifier
+                            .width(6.dp)
+                            .fillMaxHeight(h)
+                            .background(if(i==3) barColor else Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                    )
+                }
             }
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-            repeat(3) { i ->
-                Box(modifier = Modifier.padding(2.dp).size(4.dp).background(if(i==2) barColor else Color.Gray.copy(alpha = 0.3f), CircleShape))
+            if (showLabels) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    val months = listOf("J", "F", "M", "A", "M", "J", "J")
+                    months.forEach { month ->
+                        Text(month, fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }

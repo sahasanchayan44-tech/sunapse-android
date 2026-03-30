@@ -1,7 +1,9 @@
 package com.example.synapse.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.synapse.ui.components.NeumorphicCard
 
 @Composable
@@ -91,21 +94,40 @@ fun BrowsingContent(
         // Mode Toggle
         NeumorphicCard(
             modifier = Modifier.fillMaxWidth().height(60.dp),
-            shape = RoundedCornerShape(30.dp)
+            shape = RoundedCornerShape(30.dp),
+            elevation = 4.dp
         ) {
-            Row(modifier = Modifier.fillMaxSize().padding(4.dp)) {
-                TabButton(
-                    text = "Static",
-                    isSelected = !isChatMode,
-                    modifier = Modifier.weight(1f),
-                    onClick = { isChatMode = false }
+            BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                val tabWidth = maxWidth / 2
+                val indicatorOffset by animateDpAsState(
+                    targetValue = if (isChatMode) tabWidth else 0.dp,
+                    animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioNoBouncy),
+                    label = "tabIndicator"
                 )
-                TabButton(
-                    text = "AI Chatbot",
-                    isSelected = isChatMode,
-                    modifier = Modifier.weight(1f),
-                    onClick = { isChatMode = true }
+                
+                // Animated Selection Pill
+                Box(
+                    modifier = Modifier
+                        .width(tabWidth)
+                        .fillMaxHeight()
+                        .offset(x = indicatorOffset)
+                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(26.dp))
                 )
+                
+                Row(modifier = Modifier.fillMaxSize()) {
+                    TabButton(
+                        text = "Static",
+                        isSelected = !isChatMode,
+                        modifier = Modifier.weight(1f),
+                        onClick = { isChatMode = false }
+                    )
+                    TabButton(
+                        text = "AI Chatbot",
+                        isSelected = isChatMode,
+                        modifier = Modifier.weight(1f),
+                        onClick = { isChatMode = true }
+                    )
+                }
             }
         }
 
@@ -113,7 +135,10 @@ fun BrowsingContent(
 
         AnimatedContent(
             targetState = isChatMode,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            transitionSpec = { 
+                (fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.95f))
+                    .togetherWith(fadeOut(animationSpec = tween(200))) 
+            },
             label = "ModeSwitch"
         ) { targetChatMode ->
             if (targetChatMode) {
@@ -127,21 +152,29 @@ fun BrowsingContent(
 
 @Composable
 fun TabButton(text: String, isSelected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Surface(
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        animationSpec = tween(300),
+        label = "tabTextColor"
+    )
+
+    Box(
         modifier = modifier
             .fillMaxHeight()
             .clip(RoundedCornerShape(26.dp))
-            .clickable { onClick() },
-        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null // Remove ripple to keep it clean
+            ) { onClick() },
+        contentAlignment = Alignment.Center
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = text,
-                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
-        }
+        Text(
+            text = text,
+            color = contentColor,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            modifier = Modifier.zIndex(1f)
+        )
     }
 }
 
@@ -202,19 +235,18 @@ fun QuizGameplay(
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 currentQuestion.options.forEachIndexed { index, option ->
                     val isSelected = selectedAnswer == index
-                    val containerColor = if (isSelected) accentColor else MaterialTheme.colorScheme.surface
-                    val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
-
+                    
                     NeumorphicCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { selectedAnswer = index },
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = if (isSelected) 2.dp else 6.dp
                     ) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            color = containerColor,
-                            contentColor = contentColor
+                            color = if (isSelected) accentColor else MaterialTheme.colorScheme.surface,
+                            contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
                         ) {
                             Text(
                                 text = option,
@@ -281,7 +313,7 @@ fun StaticQuizList(primaryText: Color, accentColor: Color, onStartQuiz: (QuizCat
         QuizCategory("History", "World Wars & Empires", 20, Icons.Default.HistoryEdu, Color(0xFFF43F5E))
     )
 
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
         items(quizCategories) { category ->
             NeumorphicCard(
                 modifier = Modifier
