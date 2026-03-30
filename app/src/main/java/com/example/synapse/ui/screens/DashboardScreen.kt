@@ -53,7 +53,7 @@ fun DashboardScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(Color.Yellow.copy(alpha = 0.1f)) // DIAGNOSTIC: Screen BG (YELLOW)
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
@@ -115,8 +115,7 @@ fun DashboardScreen(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .background(Color.Cyan.copy(alpha = 0.1f)), // DIAGNOSTIC: Pager Container (CYAN)
+                    .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 DashboardFlashcardPager(cards, isDark, onFlashcardClick, dialPosition)

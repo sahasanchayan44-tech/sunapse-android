@@ -81,7 +81,6 @@ fun FlashcardItem(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(0.65f)
-            .background(Color.Magenta.copy(alpha = 0.2f)) // DIAGNOSTIC: Outer Container (MAGENTA)
             .graphicsLayer {
                 val pageOffset = pageOffsetProvider()
                 val absOffset = abs(pageOffset)
@@ -92,8 +91,15 @@ fun FlashcardItem(
                 translationY = floatAnim + (absOffset * 40f)
                 scaleX = lerp(0.85f, 1f, fraction)
                 scaleY = lerp(0.85f, 1f, fraction)
-                alpha = lerp(0.3f, 1f, fraction)
+                
+                // FIXED: Removed alpha animation to keep tiles fully opaque
+                alpha = 1f 
+                
                 cameraDistance = 12f * density
+                
+                // FIXED: Added clipping to the graphics layer to remove sharp corner artifacts
+                shape = RoundedCornerShape(32.dp)
+                clip = true
             }
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -111,7 +117,7 @@ fun FlashcardItem(
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = Color.Green, // DIAGNOSTIC: Main Surface (GREEN)
+            color = if (isDark) Color(0xFF121212).copy(alpha = 0.9f) else Color.White.copy(alpha = 0.9f),
             shape = RoundedCornerShape(32.dp),
             border = BorderStroke(
                 1.5.dp, 
@@ -128,7 +134,11 @@ fun FlashcardItem(
                         .fillMaxHeight(0.6f)
                         .align(Alignment.Center)
                         .blur(15.dp)
-                        .background(Color.Blue) // DIAGNOSTIC: Inner Glow (BLUE)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(data.startColor.copy(alpha = 0.4f), Color.Transparent)
+                            )
+                        )
                 )
 
                 Column(
