@@ -45,11 +45,10 @@ fun DashboardScreen(
     
     val cards = remember {
         listOf(
-            FlashcardData("DEEP", "SLEEP", "PILL", Icons.Default.Bolt, Color(0xFF00D2FF), Color(0xFF3A7BD5), listOf("Biology of Sleep", "REM Cycles", "Circadian Rhythm", "Sleep Hygiene")),
-            FlashcardData("INSIDE", "NATURE", "BREATHE", Icons.Default.Nature, Color(0xFF11998E), Color(0xFF38EF7D), listOf("Ecosystems", "Photosynthesis", "Flora & Fauna", "Conservation")),
-            FlashcardData("FORGOTTEN", "2096", "MEMORY", Icons.Default.Monitor, Color(0xFFF43F5E), Color(0xFF881337), listOf("Cyberpunk History", "Neural Links", "Digital Ghost", "The Archive")),
-            FlashcardData("QUANTUM", "PHYSICS", "CORE", Icons.Default.AutoAwesome, Color(0xFF8E2DE2), Color(0xFF4A00E0), listOf("Wave-Particle Dualism", "Uncertainty Principle", "Entanglement", "Superposition")),
-            FlashcardData("NEURO", "SYNAPSE", "BRAIN", Icons.Default.AutoAwesome, Color(0xFFFFA000), Color(0xFFFF5722), listOf("Neurons", "Neurotransmitters", "Brain Plasticity", "Cognitive Functions"))
+            FlashcardData("QUANTUM", "PHYSICS", "CORE", Icons.Default.Bolt, Color(0xFF8E2DE2), Color(0xFF4A00E0), listOf("Mechanics", "Thermodynamics", "Optics", "Electromagnetism", "Nuclear Physics")),
+            FlashcardData("ORGANIC", "CHEMISTRY", "ELEMENT", Icons.Default.Science, Color(0xFF11998E), Color(0xFF38EF7D), listOf("Atomic Structure", "Periodic Table", "Chemical Bonding", "Organic Reactions", "Equilibrium")),
+            FlashcardData("ADVANCED", "MATHEMATICS", "LOGIC", Icons.Default.Functions, Color(0xFFF43F5E), Color(0xFF881337), listOf("Calculus", "Algebra", "Trigonometry", "Probability", "Statistics")),
+            FlashcardData("MOLECULAR", "BIOLOGY", "LIFE", Icons.Default.Spa, Color(0xFFFFA000), Color(0xFFFF5722), listOf("Cell Biology", "Genetics", "Evolution", "Human Physiology", "Plant Biology"))
         )
     }
 
@@ -59,7 +58,6 @@ fun DashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
             // Rank Header Row
@@ -104,7 +102,7 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Flashcard Dials",
+                text = "Flashcards",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Black,
                 color = primaryText,
@@ -113,7 +111,15 @@ fun DashboardScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            DashboardFlashcardPager(cards, isDark, onFlashcardClick, dialPosition)
+            // Increased height handling: using weight(1f) to fill available space
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                DashboardFlashcardPager(cards, isDark, onFlashcardClick, dialPosition)
+            }
 
             Spacer(modifier = Modifier.height(40.dp))
         }
@@ -141,7 +147,11 @@ fun DashboardFlashcardPager(
 
     val titleColor = if (isDark) Color.White else Color(0xFF1A1A1A)
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -176,7 +186,7 @@ fun DashboardFlashcardPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp),
+                .weight(1f), // Allow pager to take up available height
             contentPadding = PaddingValues(horizontal = 48.dp),
             pageSpacing = 0.dp,
             beyondViewportPageCount = 1,

@@ -8,12 +8,14 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -48,6 +50,9 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
     var isLevelsTrailOpen by remember { mutableStateOf(false) }
     var dialPosition by remember { mutableStateOf(0f) }
     var selectedFlashcard by remember { mutableStateOf<FlashcardData?>(null) }
+    
+    // Track if we came to settings from profile to provide correct back navigation
+    var cameFromProfile by remember { mutableStateOf(false) }
 
     val navItems = listOf(
         NavItem(Icons.Default.Dashboard, "Dashboard", Color(0xFF3B82F6)),
@@ -85,6 +90,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                         isSelected = selectedIndex == index
                     ) {
                         selectedIndex = index
+                        cameFromProfile = false
                         scope.launch { drawerState.close() }
                     }
                 }
@@ -133,6 +139,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                             onBack = { isProfileOpen = false },
                             onSettingsClick = { 
                                 selectedIndex = 3 // Settings is now at index 3
+                                cameFromProfile = true
                                 isProfileOpen = false 
                             }
                         )
@@ -151,7 +158,18 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                             )
                             1 -> QuizzesScreen()
                             2 -> GoalsScreen()
-                            3 -> SettingsScreen(themeViewModel, authViewModel)
+                            3 -> SettingsScreen(
+                                themeViewModel = themeViewModel, 
+                                authViewModel = authViewModel,
+                                onBack = {
+                                    if (cameFromProfile) {
+                                        isProfileOpen = true
+                                        selectedIndex = 0 // Return to dashboard background
+                                    } else {
+                                        selectedIndex = 0 // Normal back goes to dashboard
+                                    }
+                                }
+                            )
                             else -> PlaceholderScreen(drawerScreens[selectedIndex])
                         }
                     }
@@ -234,32 +252,45 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.15f))
+                .background(Color.Black.copy(alpha = 0.2f))
                 .clickable { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
             NeumorphicCard(
                 modifier = Modifier
-                    .fillMaxWidth(0.88f)
-                    .height(500.dp)
+                    .fillMaxWidth(0.9f)
+                    .height(550.dp)
                     .clickable(enabled = false) { },
-                shape = RoundedCornerShape(36.dp),
-                elevation = 12.dp
+                shape = RoundedCornerShape(40.dp),
+                elevation = 16.dp,
+                containerColor = Color.Transparent // Base transparency
             ) {
-                // Glass effect overlay
+                // Enhanced Glassmorphic Main Window
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    Color.White.copy(alpha = if (isDark) 0.12f else 0.85f),
+                                    Color.White.copy(alpha = if (isDark) 0.05f else 0.5f)
+                                )
+                            ),
+                            RoundedCornerShape(40.dp)
+                        )
+                        .border(
+                            1.dp,
                             Brush.verticalGradient(
                                 listOf(
-                                    Color.White.copy(alpha = if (isDark) 0.08f else 0.7f),
-                                    Color.White.copy(alpha = if (isDark) 0.03f else 0.4f)
+                                    Color.White.copy(alpha = 0.4f),
+                                    Color.Transparent,
+                                    Color.White.copy(alpha = 0.1f)
                                 )
-                            )
+                            ),
+                            RoundedCornerShape(40.dp)
                         )
                 ) {
-                    Column(modifier = Modifier.padding(28.dp)) {
+                    Column(modifier = Modifier.padding(32.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -268,7 +299,7 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
                             Column {
                                 Text(
                                     text = "QUICK NOTES",
-                                    fontSize = 18.sp,
+                                    fontSize = 20.sp,
                                     fontWeight = FontWeight.Black,
                                     fontStyle = FontStyle.Italic,
                                     letterSpacing = 2.sp,
@@ -276,8 +307,8 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
                                 )
                                 Box(
                                     modifier = Modifier
-                                        .width(40.dp)
-                                        .height(3.dp)
+                                        .width(45.dp)
+                                        .height(4.dp)
                                         .background(
                                             MaterialTheme.colorScheme.primary, 
                                             RoundedCornerShape(2.dp)
@@ -288,29 +319,30 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
                                 onClick = onDismiss,
                                 modifier = Modifier
                                     .background(
-                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), 
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.4f), 
                                         CircleShape
                                     )
-                                    .size(36.dp)
+                                    .size(40.dp)
                             ) {
                                 Icon(
                                     Icons.Default.Close, 
                                     contentDescription = "Close", 
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(20.dp)
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         }
                         
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
                         
-                        // Internal Neumorphic Input Area
+                        // Internal Input Area with subtle depth
                         NeumorphicCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f),
-                            shape = RoundedCornerShape(24.dp),
-                            elevation = 2.dp
+                            shape = RoundedCornerShape(28.dp),
+                            elevation = 2.dp,
+                            containerColor = if (isDark) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.3f)
                         ) {
                             OutlinedTextField(
                                 value = noteText,
@@ -319,7 +351,7 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
                                 placeholder = { 
                                     Text(
                                         "Capture your spark of genius...", 
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                         fontStyle = FontStyle.Italic
                                     ) 
                                 },
@@ -330,26 +362,22 @@ fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
                                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
                                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 ),
-                                shape = RoundedCornerShape(24.dp)
+                                shape = RoundedCornerShape(28.dp)
                             )
                         }
                         
-                        Spacer(modifier = Modifier.height(28.dp))
+                        Spacer(modifier = Modifier.height(32.dp))
                         
                         Button(
                             onClick = { onDismiss() },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(60.dp)
-                                .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = MaterialTheme.colorScheme.primary),
+                                .height(64.dp)
+                                .shadow(16.dp, RoundedCornerShape(20.dp), spotColor = MaterialTheme.colorScheme.primary),
                             shape = RoundedCornerShape(20.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = Color.White
-                            ),
-                            elevation = ButtonDefaults.buttonElevation(
-                                defaultElevation = 0.dp,
-                                pressedElevation = 4.dp
                             )
                         ) {
                             Icon(Icons.Default.Save, contentDescription = null)
@@ -476,7 +504,11 @@ fun PlaceholderScreen(text: String) {
 }
 
 @Composable
-fun SettingsScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
+fun SettingsScreen(
+    themeViewModel: ThemeViewModel, 
+    authViewModel: AuthViewModel,
+    onBack: () -> Unit
+) {
     val isDark = isSystemInDarkTheme()
     val neonColor = if (isDark) Color(0xFFBB86FC) else Color(0xFF6200EE)
     val cardBg = MaterialTheme.colorScheme.surface
@@ -486,14 +518,28 @@ fun SettingsScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel)
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        Text(
-            text = "SETTINGS",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Black,
-            fontStyle = FontStyle.Italic,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "SETTINGS",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Black,
+                fontStyle = FontStyle.Italic,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
         
         // Individual Settings Tabs (Cards)
         SettingsTabCard(

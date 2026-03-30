@@ -22,6 +22,7 @@ fun NeumorphicCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(24.dp),
     elevation: Dp = 8.dp,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
     content: @Composable () -> Unit
 ) {
     val lightShadow = if (MaterialTheme.colorScheme.surface == NeuBackground) NeuShadowLight else DarkNeuShadowLight
@@ -35,7 +36,7 @@ fun NeumorphicCard(
                 lightShadowColor = lightShadow,
                 darkShadowColor = darkShadow
             )
-            .background(MaterialTheme.colorScheme.surface, shape)
+            .background(containerColor, shape)
     ) {
         content()
     }

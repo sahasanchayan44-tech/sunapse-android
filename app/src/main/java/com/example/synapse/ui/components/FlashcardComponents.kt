@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -199,11 +200,14 @@ fun FlashcardItem(
 
                     Text(
                         text = data.subtitle,
-                        fontSize = 42.sp,
+                        fontSize = 32.sp,
                         fontWeight = FontWeight.Black,
                         color = if (isDark) Color.White else Color.Black,
                         letterSpacing = (-1).sp,
-                        lineHeight = 44.sp,
+                        lineHeight = 36.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Visible,
+                        softWrap = false,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                 }

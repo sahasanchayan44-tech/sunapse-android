@@ -68,10 +68,13 @@ fun SynapseAnimatedBottomNav(
     var dragOffset by remember { mutableStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
 
-    // Logic for "Standing up" when Flashcards (Index 2) is selected
-    val isFlashcardsSelected = selectedIndex == 2
+    // Logic for "Standing up" when Flashcards (Index 0) or Quests (Index 2) is selected
+    // Note: Based on MainScreen, Index 0 is Dashboard (Flashcards), Index 1 is Quizzes, Index 2 is Goals (Quests)
+    val isDashboardSelected = selectedIndex == 0
+    val isQuestsSelected = selectedIndex == 2
+    
     val liftOffset by animateDpAsState(
-        targetValue = if (isFlashcardsSelected) (-24).dp else 0.dp,
+        targetValue = if (isDashboardSelected) (-24).dp else if (isQuestsSelected) (-12).dp else 0.dp,
         animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow),
         label = "liftOffset"
     )
@@ -94,9 +97,9 @@ fun SynapseAnimatedBottomNav(
         label = "indicatorX"
     )
 
-    // Send position updates to parent if dragging on Flashcards
+    // Send position updates to parent if dragging on Dashboard (where dial is used)
     LaunchedEffect(animatedX, isDragging) {
-        if (isFlashcardsSelected && isDragging) {
+        if (isDashboardSelected && isDragging) {
             onDialUpdate(animatedX / fullWidthPx)
         }
     }
@@ -189,7 +192,7 @@ fun SynapseAnimatedBottomNav(
                     )
                     .size(bubbleSize)
                     .drawBehind {
-                        if (!isDark || isFlashcardsSelected) {
+                        if (!isDark || isDashboardSelected || isQuestsSelected) {
                             drawIntoCanvas { canvas ->
                                 val paint = Paint()
                                 val frameworkPaint = paint.asFrameworkPaint()
@@ -198,7 +201,7 @@ fun SynapseAnimatedBottomNav(
                                     24.dp.toPx(),
                                     0f,
                                     8.dp.toPx(),
-                                    activeColor.copy(alpha = if (isFlashcardsSelected) 0.8f else 0.6f).toArgb()
+                                    activeColor.copy(alpha = if (isDashboardSelected || isQuestsSelected) 0.8f else 0.6f).toArgb()
                                 )
                                 canvas.drawCircle(
                                     center = Offset(size.width / 2f, size.height / 2f),
@@ -217,9 +220,17 @@ fun SynapseAnimatedBottomNav(
                     .background(MaterialTheme.colorScheme.surface, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                // Flashcards Dial Icon (Pause style from reference when selected)
+                // Determine icon based on current screen
+                // Index 0 is Dashboard (Flashcards) -> Show Pause when active
+                // Index 2 is Quests (Goals) -> Show original Quest icon
+                val currentIcon = if (isDashboardSelected) {
+                    Icons.Default.Pause
+                } else {
+                    items[currentActiveIndex].icon
+                }
+
                 Icon(
-                    imageVector = if (isFlashcardsSelected) Icons.Default.Pause else items[currentActiveIndex].icon,
+                    imageVector = currentIcon,
                     contentDescription = null,
                     modifier = Modifier.size(iconSize + 4.dp),
                     tint = activeColor
