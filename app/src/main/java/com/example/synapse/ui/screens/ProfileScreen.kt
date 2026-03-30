@@ -12,19 +12,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,7 +34,6 @@ import java.util.*
 fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, onBack: () -> Unit) {
     val user = authViewModel.currentUser
     val stats = authViewModel.userStats
-    val isDark = isSystemInDarkTheme()
     val primaryText = MaterialTheme.colorScheme.onSurface
     val secondaryText = MaterialTheme.colorScheme.onSurfaceVariant
     val accentColor = MaterialTheme.colorScheme.primary
@@ -232,48 +227,6 @@ fun ProfileScreen(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel, 
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Settings Section Header
-                Text(
-                    text = "SETTINGS",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    fontStyle = FontStyle.Italic,
-                    color = primaryText,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                // Dark Mode Toggle
-                val neonColor = if (isDark) Color(0xFFBB86FC) else Color(0xFF6200EE)
-                SettingsOptionCard(
-                    title = if (themeViewModel.isDarkMode) "Dark Mode" else "Light Mode",
-                    icon = if (themeViewModel.isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
-                    neonColor = neonColor,
-                    cardBg = MaterialTheme.colorScheme.surface
-                ) {
-                    Switch(
-                        checked = themeViewModel.isDarkMode,
-                        onCheckedChange = { themeViewModel.toggleDarkMode() },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = neonColor,
-                            checkedTrackColor = neonColor.copy(alpha = 0.5f)
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                SettingsOptionCard(
-                    title = "Logout",
-                    icon = Icons.AutoMirrored.Filled.Logout,
-                    neonColor = Color.Red,
-                    cardBg = MaterialTheme.colorScheme.surface,
-                    onClick = { authViewModel.signOut() }
-                ) {
-                    Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Red.copy(alpha = 0.3f))
-                }
                 
                 Spacer(modifier = Modifier.height(40.dp))
             }
@@ -444,63 +397,6 @@ fun PlannerTaskItem(
                 color = if (isCompleted) primaryText.copy(alpha = 0.3f) else primaryText,
                 style = if (isCompleted) androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else androidx.compose.ui.text.TextStyle.Default
             )
-        }
-    }
-}
-
-@Composable
-fun SettingsOptionCard(
-    title: String,
-    icon: ImageVector,
-    neonColor: Color,
-    cardBg: Color,
-    onClick: (() -> Unit)? = null,
-    content: @Composable () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .shadow(
-                elevation = 12.dp,
-                shape = RoundedCornerShape(20.dp),
-                spotColor = neonColor.copy(alpha = 0.4f),
-                ambientColor = neonColor.copy(alpha = 0.4f)
-            ),
-        shape = RoundedCornerShape(20.dp),
-        color = cardBg,
-        border = BorderStroke(
-            1.dp, 
-            Brush.linearGradient(
-                listOf(Color.White.copy(alpha = 0.3f), Color.Transparent)
-            )
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(18.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(neonColor.copy(alpha = 0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(imageVector = icon, contentDescription = null, tint = neonColor, modifier = Modifier.size(20.dp))
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            content()
         }
     }
 }
