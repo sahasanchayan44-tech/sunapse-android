@@ -54,10 +54,10 @@ fun SynapseAnimatedBottomNav(
     items: List<NavItem>,
     onDialUpdate: (Float) -> Unit = {}
 ) {
-    // Configuration
-    val barHeight = 80.dp 
-    val bubbleSize = 64.dp 
-    val iconSize = 24.dp
+    // Configuration - Increased sizes for a bigger "tab" look
+    val barHeight = 90.dp 
+    val bubbleSize = 72.dp 
+    val iconSize = 28.dp
     val isDark = isSystemInDarkTheme()
     
     val density = LocalDensity.current
@@ -68,13 +68,11 @@ fun SynapseAnimatedBottomNav(
     var dragOffset by remember { mutableStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
 
-    // Logic for "Standing up" when Flashcards (Index 0) or Quests (Index 2) is selected
-    // Note: Based on MainScreen, Index 0 is Dashboard (Flashcards), Index 1 is Quizzes, Index 2 is Goals (Quests)
+    // Logic for "Standing up" - Unified for all options
     val isDashboardSelected = selectedIndex == 0
-    val isQuestsSelected = selectedIndex == 2
     
     val liftOffset by animateDpAsState(
-        targetValue = if (isDashboardSelected) (-24).dp else if (isQuestsSelected) (-12).dp else 0.dp,
+        targetValue = (-8).dp,
         animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow),
         label = "liftOffset"
     )
@@ -192,23 +190,21 @@ fun SynapseAnimatedBottomNav(
                     )
                     .size(bubbleSize)
                     .drawBehind {
-                        if (!isDark || isDashboardSelected || isQuestsSelected) {
-                            drawIntoCanvas { canvas ->
-                                val paint = Paint()
-                                val frameworkPaint = paint.asFrameworkPaint()
-                                frameworkPaint.color = Color.Transparent.toArgb()
-                                frameworkPaint.setShadowLayer(
-                                    24.dp.toPx(),
-                                    0f,
-                                    8.dp.toPx(),
-                                    activeColor.copy(alpha = if (isDashboardSelected || isQuestsSelected) 0.8f else 0.6f).toArgb()
-                                )
-                                canvas.drawCircle(
-                                    center = Offset(size.width / 2f, size.height / 2f),
-                                    radius = size.minDimension / 2.4f,
-                                    paint = paint
-                                )
-                            }
+                        drawIntoCanvas { canvas ->
+                            val paint = Paint()
+                            val frameworkPaint = paint.asFrameworkPaint()
+                            frameworkPaint.color = Color.Transparent.toArgb()
+                            frameworkPaint.setShadowLayer(
+                                24.dp.toPx(),
+                                0f,
+                                8.dp.toPx(),
+                                activeColor.copy(alpha = 0.8f).toArgb()
+                            )
+                            canvas.drawCircle(
+                                center = Offset(size.width / 2f, size.height / 2f),
+                                radius = size.minDimension / 2.4f,
+                                paint = paint
+                            )
                         }
                     }
                     .shadow(
@@ -220,14 +216,7 @@ fun SynapseAnimatedBottomNav(
                     .background(MaterialTheme.colorScheme.surface, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                // Determine icon based on current screen
-                // Index 0 is Dashboard (Flashcards) -> Show Pause when active
-                // Index 2 is Quests (Goals) -> Show original Quest icon
-                val currentIcon = if (isDashboardSelected) {
-                    Icons.Default.Pause
-                } else {
-                    items[currentActiveIndex].icon
-                }
+                val currentIcon = items[currentActiveIndex].icon
 
                 Icon(
                     imageVector = currentIcon,

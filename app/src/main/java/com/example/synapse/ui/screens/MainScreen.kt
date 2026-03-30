@@ -1,11 +1,5 @@
 package com.example.synapse.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -36,7 +29,6 @@ import com.example.synapse.ui.ThemeViewModel
 import com.example.synapse.ui.components.NavItem
 import com.example.synapse.ui.components.SynapseAnimatedBottomNav
 import com.example.synapse.ui.components.FlashcardData
-import com.example.synapse.ui.components.NeumorphicCard
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,7 +37,6 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedIndex by remember { mutableStateOf(0) }
-    var showNotes by remember { mutableStateOf(false) }
     var isProfileOpen by remember { mutableStateOf(false) }
     var isLevelsTrailOpen by remember { mutableStateOf(false) }
     var dialPosition by remember { mutableStateOf(0f) }
@@ -112,26 +103,10 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                         onDialUpdate = { dialPosition = it }
                     )
                 }
-            },
-            floatingActionButton = {
-                if (selectedIndex == 0 && !isProfileOpen && !isLevelsTrailOpen && selectedFlashcard == null) {
-                    FloatingActionButton(
-                        onClick = { showNotes = !showNotes },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                        shape = CircleShape,
-                        modifier = Modifier.offset(y = (-20).dp)
-                    ) {
-                        Icon(imageVector = if (showNotes) Icons.Default.Close else Icons.Default.EditNote, contentDescription = "Notes", modifier = Modifier.size(28.dp))
-                    }
-                }
             }
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                Box(modifier = Modifier
-                    .fillMaxSize()
-                    .then(if (showNotes) Modifier.blur(12.dp) else Modifier)
-                ) {
+                Box(modifier = Modifier.fillMaxSize()) {
                     if (isProfileOpen) {
                         ProfileScreen(
                             authViewModel = authViewModel, 
@@ -174,8 +149,6 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                         }
                     }
                 }
-
-                NotesFloatingWindow(isVisible = showNotes, onDismiss = { showNotes = false })
             }
         }
     }
@@ -234,164 +207,6 @@ fun SettingsTabCard(
                 )
             }
             content()
-        }
-    }
-}
-
-@Composable
-fun NotesFloatingWindow(isVisible: Boolean, onDismiss: () -> Unit) {
-    var noteText by remember { mutableStateOf("") }
-    val isDark = isSystemInDarkTheme()
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.8f, animationSpec = tween(400)),
-        exit = fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.8f, animationSpec = tween(300)),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.2f))
-                .clickable { onDismiss() },
-            contentAlignment = Alignment.Center
-        ) {
-            NeumorphicCard(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(550.dp)
-                    .clickable(enabled = false) { },
-                shape = RoundedCornerShape(40.dp),
-                elevation = 16.dp,
-                containerColor = Color.Transparent // Base transparency
-            ) {
-                // Enhanced Glassmorphic Main Window
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    Color.White.copy(alpha = if (isDark) 0.12f else 0.85f),
-                                    Color.White.copy(alpha = if (isDark) 0.05f else 0.5f)
-                                )
-                            ),
-                            RoundedCornerShape(40.dp)
-                        )
-                        .border(
-                            1.dp,
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.4f),
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = 0.1f)
-                                )
-                            ),
-                            RoundedCornerShape(40.dp)
-                        )
-                ) {
-                    Column(modifier = Modifier.padding(32.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "QUICK NOTES",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Black,
-                                    fontStyle = FontStyle.Italic,
-                                    letterSpacing = 2.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .width(45.dp)
-                                        .height(4.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.primary, 
-                                            RoundedCornerShape(2.dp)
-                                        )
-                                )
-                            }
-                            IconButton(
-                                onClick = onDismiss,
-                                modifier = Modifier
-                                    .background(
-                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.4f), 
-                                        CircleShape
-                                    )
-                                    .size(40.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Close, 
-                                    contentDescription = "Close", 
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        // Internal Input Area with subtle depth
-                        NeumorphicCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            shape = RoundedCornerShape(28.dp),
-                            elevation = 2.dp,
-                            containerColor = if (isDark) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.3f)
-                        ) {
-                            OutlinedTextField(
-                                value = noteText,
-                                onValueChange = { noteText = it },
-                                modifier = Modifier.fillMaxSize(),
-                                placeholder = { 
-                                    Text(
-                                        "Capture your spark of genius...", 
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                        fontStyle = FontStyle.Italic
-                                    ) 
-                                },
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color.Transparent,
-                                    unfocusedBorderColor = Color.Transparent,
-                                    cursorColor = MaterialTheme.colorScheme.primary,
-                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                shape = RoundedCornerShape(28.dp)
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(32.dp))
-                        
-                        Button(
-                            onClick = { onDismiss() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(64.dp)
-                                .shadow(16.dp, RoundedCornerShape(20.dp), spotColor = MaterialTheme.colorScheme.primary),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = Color.White
-                            )
-                        ) {
-                            Icon(Icons.Default.Save, contentDescription = null)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                "SAVE NOTE", 
-                                fontWeight = FontWeight.ExtraBold, 
-                                fontStyle = FontStyle.Italic, 
-                                letterSpacing = 1.5.sp
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }

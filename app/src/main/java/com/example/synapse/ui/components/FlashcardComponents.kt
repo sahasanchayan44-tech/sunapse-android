@@ -97,6 +97,11 @@ fun FlashcardItem(
                 
                 cameraDistance = 12f * density
                 
+                // FIXED: Corrected property names for 3D shadow effect
+                shadowElevation = 40f * density
+                ambientShadowColor = Color.Black.copy(alpha = if (isDark) 0.6f else 0.4f)
+                spotShadowColor = Color.Black.copy(alpha = if (isDark) 0.6f else 0.4f)
+                
                 // Clipping to remove sharp corner artifacts
                 shape = RoundedCornerShape(32.dp)
                 clip = true
@@ -117,8 +122,7 @@ fun FlashcardItem(
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            // FIXED: Set alpha to 1.0f to make the card solid/opaque
-            color = if (isDark) Color(0xFF121212).copy(alpha = 1.0f) else Color.White.copy(alpha = 1.0f),
+            color = if (isDark) Color(0xFF121212) else Color.White,
             shape = RoundedCornerShape(32.dp),
             border = BorderStroke(
                 1.5.dp, 
@@ -126,7 +130,8 @@ fun FlashcardItem(
                     listOf(Color.White.copy(alpha = 0.4f), Color.Transparent, Color.White.copy(alpha = 0.1f))
                 )
             ),
-            shadowElevation = if (isDark) 0.dp else 20.dp
+            // Set elevation to 0 here because it's handled by the parent graphicsLayer
+            shadowElevation = 0.dp
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Box(
