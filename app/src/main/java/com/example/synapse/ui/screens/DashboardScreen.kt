@@ -4,6 +4,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
@@ -46,6 +48,37 @@ fun DashboardScreen(
     
     val subjects = authViewModel.subjects
     val isLoading = authViewModel.isLoading
+
+    val categories = listOf("All", "Science", "Maths", "Humanities", "Business", "Computer Science")
+    
+    var selectedCategory by remember { mutableStateOf("All") }
+    
+    val filteredSubjects = remember(subjects, selectedCategory) {
+        when (selectedCategory) {
+            "All" -> subjects
+            "Science" -> subjects.filter { 
+                it.category.equals("Science", ignoreCase = true) || 
+                it.subtitle.uppercase() in listOf("PHYSICS", "CHEMISTRY", "BIOLOGY") 
+            }
+            "Maths" -> subjects.filter { 
+                it.category.equals("Maths", ignoreCase = true) || 
+                it.subtitle.uppercase() == "MATHEMATICS" 
+            }
+            "Humanities" -> subjects.filter { 
+                it.category.equals("Humanities", ignoreCase = true) || 
+                it.subtitle.uppercase() == "HISTORY" 
+            }
+            "Business" -> subjects.filter { 
+                it.category.equals("Business", ignoreCase = true) || 
+                it.subtitle.uppercase() == "ECONOMICS" 
+            }
+            "Computer Science" -> subjects.filter { 
+                it.category.uppercase() in listOf("CS", "COMPUTER SCIENCE") || 
+                it.subtitle.uppercase() == "STRUCTURES" 
+            }
+            else -> subjects.filter { it.category == selectedCategory }
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -96,15 +129,23 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Flashcards",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Black,
-                color = primaryText,
-                letterSpacing = (-1).sp
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
+            // Category Bar Tab
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(end = 24.dp)
+            ) {
+                items(categories) { category ->
+                    val isSelected = category == selectedCategory
+                    CategoryTab(
+                        name = category,
+                        isSelected = isSelected,
+                        onClick = { selectedCategory = category }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             Box(
                 modifier = Modifier
@@ -114,15 +155,53 @@ fun DashboardScreen(
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(color = accentColor)
-                } else if (subjects.isEmpty()) {
-                    // This will only show if data is finished loading and still empty
-                    Text("No subjects found. Use 'Seed DB' button to add data.", color = primaryText.copy(alpha = 0.5f))
+                } else if (filteredSubjects.isEmpty()) {
+                    Text("No subjects found in this category.", color = primaryText.copy(alpha = 0.5f))
                 } else {
-                    DashboardFlashcardPager(subjects, isDark, onFlashcardClick, dialPosition)
+                    key(selectedCategory) { // Reset pager state when category changes
+                        DashboardFlashcardPager(filteredSubjects, isDark, onFlashcardClick, dialPosition)
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(40.dp))
+        }
+    }
+}
+
+@Composable
+fun CategoryTab(
+    name: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor by animateColorAsState(
+        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        label = "bg"
+    )
+    val contentColor by animateColorAsState(
+        if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        label = "content"
+    )
+
+    Surface(
+        modifier = Modifier
+            .clickable { onClick() }
+            .animateContentSize(),
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor,
+        shadowElevation = if (isSelected) 4.dp else 0.dp
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = name,
+                fontSize = 14.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = contentColor
+            )
         }
     }
 }
@@ -213,6 +292,9 @@ fun DashboardFlashcardPager(
                     "Science" -> Icons.Default.Science
                     "Functions" -> Icons.Default.Functions
                     "Spa" -> Icons.Default.Spa
+                    "Business" -> Icons.Default.BusinessCenter
+                    "History" -> Icons.Default.HistoryEdu
+                    "Computer" -> Icons.Default.Computer
                     else -> Icons.Default.Bolt
                 },
                 startColor = Color(android.graphics.Color.parseColor(subject.startColor)),

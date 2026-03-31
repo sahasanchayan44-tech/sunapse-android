@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.synapse.R
 import com.example.synapse.auth.AuthViewModel
+import com.example.synapse.ui.components.NeumorphicCard
 import com.example.synapse.ui.theme.*
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -56,9 +58,10 @@ fun LoginScreen(authViewModel: AuthViewModel) {
     var showPassword by remember { mutableStateOf(false) }
     
     val context = LocalContext.current
-    val primaryBlue = Primary
-    val backgroundDark = DarkNeuBackground
-    val cardBackground = DarkNeuShadowLight
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -83,7 +86,7 @@ fun LoginScreen(authViewModel: AuthViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundDark)
+            .background(backgroundColor)
     ) {
         AnimatedContent(
             targetState = screenState,
@@ -100,23 +103,16 @@ fun LoginScreen(authViewModel: AuthViewModel) {
             ) {
                 Spacer(modifier = Modifier.height(40.dp))
                 
-                // Logo (Bolt icon as in the image)
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Brush.linearGradient(listOf(primaryBlue, primaryBlue.copy(alpha = 0.7f)))),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = "Logo",
-                        modifier = Modifier.size(48.dp),
-                        tint = Color.White
-                    )
-                }
+                Text(
+                    text = "SYNAPSE",
+                    fontSize = 40.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                    letterSpacing = 4.sp,
+                    color = textColor
+                )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(48.dp))
                 
                 when (state) {
                     AuthScreenState.LOGIN -> {
@@ -132,7 +128,6 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                             onRememberMeChange = { rememberMe = it },
                             primaryActionText = "Log In",
                             onPrimaryAction = { 
-                                // Demo: if email is "otp@test.com", go to verify
                                 if (email == "otp@test.com") screenState = AuthScreenState.VERIFY
                                 else authViewModel.signInWithEmail(email, password) 
                             },
@@ -149,8 +144,9 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                                 launcher.launch(googleSignInClient.signInIntent)
                             },
                             isLoading = authViewModel.isLoading,
-                            cardBackground = cardBackground,
-                            primaryBlue = primaryBlue
+                            primaryColor = primaryColor,
+                            textColor = textColor,
+                            textSecondary = textSecondary
                         )
                     }
                     AuthScreenState.SIGNUP -> {
@@ -167,15 +163,16 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                             rememberMe = rememberMe,
                             onRememberMeChange = { rememberMe = it },
                             rememberMeLabel = "I agree to the Terms of Service",
-                            primaryActionText = "Log In", 
+                            primaryActionText = "Create Account", 
                             onPrimaryAction = { authViewModel.signUpWithEmail(email, password) },
                             secondaryActionText = "Do you have an account? Log In",
                             onSecondaryAction = { screenState = AuthScreenState.LOGIN },
                             socialLogins = true,
                             onGoogleLogin = { /* Google Login */ },
                             isLoading = authViewModel.isLoading,
-                            cardBackground = cardBackground,
-                            primaryBlue = primaryBlue
+                            primaryColor = primaryColor,
+                            textColor = textColor,
+                            textSecondary = textSecondary
                         )
                     }
                     AuthScreenState.VERIFY -> {
@@ -186,8 +183,9 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                             onContinue = { /* Verify OTP logic */ },
                             onResend = { /* Resend OTP */ },
                             onBack = { screenState = AuthScreenState.LOGIN },
-                            primaryBlue = primaryBlue,
-                            cardBackground = cardBackground
+                            primaryColor = primaryColor,
+                            textColor = textColor,
+                            textSecondary = textSecondary
                         )
                     }
                 }
@@ -217,56 +215,64 @@ fun ColumnScope.AuthContent(
     socialLogins: Boolean = false,
     onGoogleLogin: (() -> Unit)? = null,
     isLoading: Boolean,
-    cardBackground: Color,
-    primaryBlue: Color
+    primaryColor: Color,
+    textColor: Color,
+    textSecondary: Color
 ) {
     Text(
         text = title,
         fontSize = 28.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color.White
+        fontWeight = FontWeight.Black,
+        color = textColor
     )
 
     Spacer(modifier = Modifier.height(32.dp))
 
-    // Input Fields
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        AuthTextField(
-            value = email,
-            onValueChange = onEmailChange,
-            label = "Email",
-            placeholder = "jamesbond123@gmail.com",
-            leadingIcon = Icons.Default.Email,
-            cardBackground = cardBackground,
-            primaryBlue = primaryBlue
-        )
-
-        AuthTextField(
-            value = password,
-            onValueChange = onPasswordChange,
-            label = "Password",
-            placeholder = "********",
-            leadingIcon = Icons.Default.Lock,
-            isPassword = true,
-            showPassword = showPassword,
-            onPasswordToggle = onPasswordToggle,
-            cardBackground = cardBackground,
-            primaryBlue = primaryBlue
-        )
-
-        if (confirmPassword != null && onConfirmPasswordChange != null) {
+    NeumorphicCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             AuthTextField(
-                value = confirmPassword,
-                onValueChange = onConfirmPasswordChange,
-                label = "Confirm Password",
+                value = email,
+                onValueChange = onEmailChange,
+                label = "Email",
+                placeholder = "jamesbond123@gmail.com",
+                leadingIcon = Icons.Default.Email,
+                primaryColor = primaryColor,
+                textColor = textColor,
+                textSecondary = textSecondary
+            )
+
+            AuthTextField(
+                value = password,
+                onValueChange = onPasswordChange,
+                label = "Password",
                 placeholder = "********",
                 leadingIcon = Icons.Default.Lock,
                 isPassword = true,
                 showPassword = showPassword,
                 onPasswordToggle = onPasswordToggle,
-                cardBackground = cardBackground,
-                primaryBlue = primaryBlue
+                primaryColor = primaryColor,
+                textColor = textColor,
+                textSecondary = textSecondary
             )
+
+            if (confirmPassword != null && onConfirmPasswordChange != null) {
+                AuthTextField(
+                    value = confirmPassword,
+                    onValueChange = onConfirmPasswordChange,
+                    label = "Confirm Password",
+                    placeholder = "********",
+                    leadingIcon = Icons.Default.Lock,
+                    isPassword = true,
+                    showPassword = showPassword,
+                    onPasswordToggle = onPasswordToggle,
+                    primaryColor = primaryColor,
+                    textColor = textColor,
+                    textSecondary = textSecondary
+                )
+            }
         }
     }
 
@@ -283,14 +289,14 @@ fun ColumnScope.AuthContent(
                 checked = rememberMe,
                 onCheckedChange = onRememberMeChange,
                 colors = CheckboxDefaults.colors(
-                    checkedColor = primaryBlue,
-                    uncheckedColor = Color.White.copy(alpha = 0.4f),
-                    checkmarkColor = Color.White
+                    checkedColor = primaryColor,
+                    uncheckedColor = textSecondary.copy(alpha = 0.4f),
+                    checkmarkColor = textColor
                 )
             )
             Text(
                 text = rememberMeLabel,
-                color = Color.White.copy(alpha = 0.7f),
+                color = textSecondary,
                 fontSize = 14.sp
             )
         }
@@ -298,7 +304,7 @@ fun ColumnScope.AuthContent(
         if (title == "Log In") {
             Text(
                 text = "Forgotten Password?",
-                color = primaryBlue,
+                color = primaryColor,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.clickable { /* Handle forgot password */ }
@@ -315,15 +321,16 @@ fun ColumnScope.AuthContent(
             .fillMaxWidth()
             .height(56.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
+        colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
     ) {
         if (isLoading) {
             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
         } else {
             Text(
-                text = primaryActionText,
+                text = primaryActionText.uppercase(),
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Black,
+                fontStyle = FontStyle.Italic,
                 color = Color.White
             )
         }
@@ -332,24 +339,46 @@ fun ColumnScope.AuthContent(
     if (socialLogins) {
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = if (title == "Log In") "Or Log In with" else "Or Create with",
-            color = Color.White.copy(alpha = 0.4f),
-            fontSize = 14.sp
+            text = "OR",
+            color = textSecondary.copy(alpha = 0.6f),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SocialLoginButton(
-                text = "Log In with Google",
-                iconText = "G",
-                onClick = { onGoogleLogin?.invoke() },
-                backgroundColor = cardBackground
-            )
-            SocialLoginButton(
-                text = "Log In with Facebook",
-                iconText = "f",
-                onClick = { /* Facebook Login */ },
-                backgroundColor = cardBackground
-            )
+        
+        NeumorphicCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clickable { onGoogleLogin?.invoke() },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(textSecondary.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "G",
+                        color = Color(0xFFEA4335),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 14.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Sign in with Google",
+                    color = textColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
         }
     }
 
@@ -360,12 +389,12 @@ fun ColumnScope.AuthContent(
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = if (splitText.size > 1) splitText[0] + "?" else splitText[0],
-            color = Color.White.copy(alpha = 0.6f),
+            color = textSecondary,
             fontSize = 14.sp
         )
         Text(
             text = if (splitText.size > 1) splitText[1] else "",
-            color = primaryBlue,
+            color = primaryColor,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.clickable { onSecondaryAction() }
@@ -381,14 +410,15 @@ fun ColumnScope.VerifyContent(
     onContinue: () -> Unit,
     onResend: () -> Unit,
     onBack: () -> Unit,
-    primaryBlue: Color,
-    cardBackground: Color
+    primaryColor: Color,
+    textColor: Color,
+    textSecondary: Color
 ) {
     Text(
         text = "Enter OTP",
         fontSize = 28.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color.White
+        fontWeight = FontWeight.Black,
+        color = textColor
     )
     
     Spacer(modifier = Modifier.height(8.dp))
@@ -396,7 +426,7 @@ fun ColumnScope.VerifyContent(
     Text(
         text = "OTP sent to your email address\n$email. Enter the code to proceed.",
         fontSize = 14.sp,
-        color = Color.White.copy(alpha = 0.6f),
+        color = textSecondary,
         textAlign = TextAlign.Center
     )
 
@@ -409,18 +439,17 @@ fun ColumnScope.VerifyContent(
     ) {
         repeat(4) { index ->
             val char = otpCode.getOrNull(index)?.toString() ?: ""
-            Surface(
+            NeumorphicCard(
                 modifier = Modifier.size(60.dp),
                 shape = CircleShape,
-                color = Color.Transparent,
-                border = BorderStroke(1.dp, if (char.isNotEmpty()) primaryBlue else Color.White.copy(alpha = 0.1f))
+                elevation = if (char.isNotEmpty()) 4.dp else 2.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = char,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = if (char.isNotEmpty()) primaryColor else textColor
                     )
                 }
             }
@@ -435,9 +464,9 @@ fun ColumnScope.VerifyContent(
             .fillMaxWidth()
             .height(56.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
+        colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
     ) {
-        Text("Continue", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text("CONTINUE", fontSize = 16.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic, color = Color.White)
     }
 
     Spacer(modifier = Modifier.height(24.dp))
@@ -445,12 +474,12 @@ fun ColumnScope.VerifyContent(
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = "Don't receive the OTP? ",
-            color = Color.White.copy(alpha = 0.6f),
+            color = textSecondary,
             fontSize = 14.sp
         )
         Text(
             text = "Resend OTP",
-            color = primaryBlue,
+            color = primaryColor,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.clickable { onResend() }
@@ -459,9 +488,11 @@ fun ColumnScope.VerifyContent(
 
     Spacer(modifier = Modifier.weight(1f))
     
-    // Numeric Keypad
+    // Numeric Keypad with Synapse Theme
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         val keys = listOf(
@@ -476,23 +507,39 @@ fun ColumnScope.VerifyContent(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 row.forEach { key ->
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .clickable(enabled = key.isNotEmpty()) {
+                    if (key.isEmpty()) {
+                        Spacer(modifier = Modifier.size(64.dp))
+                    } else {
+                        NeumorphicCard(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clickable {
+                                    if (key == "DEL") {
+                                        if (otpCode.isNotEmpty()) onOtpChange(otpCode.dropLast(1))
+                                    } else {
+                                        onOtpChange(otpCode + key)
+                                    }
+                                },
+                            shape = CircleShape,
+                            elevation = 2.dp
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 if (key == "DEL") {
-                                    if (otpCode.isNotEmpty()) onOtpChange(otpCode.dropLast(1))
-                                } else if (key.isNotEmpty()) {
-                                    onOtpChange(otpCode + key)
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Backspace,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                } else {
+                                    Text(
+                                        text = key,
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = textColor
+                                    )
                                 }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (key == "DEL") {
-                            Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = null, tint = Color.White)
-                        } else if (key.isNotEmpty()) {
-                            Text(text = key, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
                         }
                     }
                 }
@@ -512,97 +559,45 @@ fun AuthTextField(
     isPassword: Boolean = false,
     showPassword: Boolean = false,
     onPasswordToggle: (() -> Unit)? = null,
-    cardBackground: Color,
-    primaryBlue: Color
+    primaryColor: Color,
+    textColor: Color,
+    textSecondary: Color
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = label,
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium
+            text = label.uppercase(),
+            color = textSecondary.copy(alpha = 0.7f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 1.sp
         )
-        Surface(
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            color = cardBackground,
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
-        ) {
-            TextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(placeholder, color = Color.White.copy(alpha = 0.3f)) },
-                leadingIcon = { Icon(leadingIcon, contentDescription = null, tint = primaryBlue, modifier = Modifier.size(20.dp)) },
-                trailingIcon = if (isPassword && onPasswordToggle != null) {
-                    {
-                        IconButton(onClick = onPasswordToggle) {
-                            Icon(
-                                if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.4f)
-                            )
-                        }
+            placeholder = { Text(placeholder, color = textSecondary.copy(alpha = 0.3f), fontSize = 14.sp) },
+            leadingIcon = { Icon(leadingIcon, contentDescription = null, tint = primaryColor, modifier = Modifier.size(20.dp)) },
+            trailingIcon = if (isPassword && onPasswordToggle != null) {
+                {
+                    IconButton(onClick = onPasswordToggle) {
+                        Icon(
+                            if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = null,
+                            tint = textSecondary.copy(alpha = 0.6f)
+                        )
                     }
-                } else null,
-                visualTransformation = if (isPassword && !showPassword) PasswordVisualTransformation() else VisualTransformation.None,
-                keyboardOptions = if (isPassword) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    cursorColor = primaryBlue,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                )
+                }
+            } else null,
+            visualTransformation = if (isPassword && !showPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = if (isPassword) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryColor,
+                unfocusedBorderColor = textSecondary.copy(alpha = 0.2f),
+                cursorColor = primaryColor,
+                focusedTextColor = textColor,
+                unfocusedTextColor = textColor
             )
-        }
-    }
-}
-
-@Composable
-fun SocialLoginButton(
-    text: String,
-    iconText: String,
-    onClick: () -> Unit,
-    backgroundColor: Color
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        color = backgroundColor,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .background(Color.White.copy(alpha = 0.1f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = iconText,
-                    color = if (iconText == "G") Color(0xFFEA4335) else Color(0xFF1877F2),
-                    fontWeight = FontWeight.Black,
-                    fontSize = 14.sp
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = text,
-                color = Color.White,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp
-            )
-        }
+        )
     }
 }

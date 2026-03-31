@@ -10,6 +10,7 @@ data class SubjectModel(
     val iconName: String = "Bolt",
     val startColor: String = "#8E2DE2",
     val endColor: String = "#4A00E0",
+    val category: String = "General",
     val order: Int = 0
 )
 

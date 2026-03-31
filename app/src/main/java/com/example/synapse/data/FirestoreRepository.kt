@@ -82,10 +82,13 @@ class FirestoreRepository {
         try {
             // 1. Seed Subjects
             val subjects = listOf(
-                SubjectModel("physics_subject", "QUANTUM", "PHYSICS", "CORE", "Bolt", "#8E2DE2", "#4A00E0", 1),
-                SubjectModel("chemistry_subject", "ORGANIC", "CHEMISTRY", "ELEMENT", "Science", "#11998E", "#38EF7D", 2),
-                SubjectModel("math_subject", "ADVANCED", "MATHEMATICS", "LOGIC", "Functions", "#F43F5E", "#881337", 3),
-                SubjectModel("biology_subject", "MOLECULAR", "BIOLOGY", "LIFE", "Spa", "#FFA000", "#FF5722", 4)
+                SubjectModel("physics_subject", "QUANTUM", "PHYSICS", "CORE", "Bolt", "#8E2DE2", "#4A00E0", "Science", 1),
+                SubjectModel("chemistry_subject", "ORGANIC", "CHEMISTRY", "ELEMENT", "Science", "#11998E", "#38EF7D", "Science", 2),
+                SubjectModel("math_subject", "ADVANCED", "MATHEMATICS", "LOGIC", "Functions", "#F43F5E", "#881337", "Maths", 3),
+                SubjectModel("biology_subject", "MOLECULAR", "BIOLOGY", "LIFE", "Spa", "#FFA000", "#FF5722", "Science", 4),
+                SubjectModel("economics_subject", "MACRO", "ECONOMICS", "TRADE", "Business", "#00C9FF", "#92FE9D", "Business", 5),
+                SubjectModel("history_subject", "ANCIENT", "HISTORY", "PAST", "History", "#f953c6", "#b91d73", "Humanities", 6),
+                SubjectModel("cs_subject", "DATA", "STRUCTURES", "CODE", "Computer", "#434343", "#000000", "CS", 7)
             )
 
             for (subject in subjects) {
