@@ -2,7 +2,6 @@ package com.example.synapse.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -25,10 +24,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.synapse.auth.AuthViewModel
+import com.example.synapse.models.LessonModel
+import com.example.synapse.models.SubjectModel
+import com.example.synapse.models.TopicModel
 import com.example.synapse.ui.ThemeViewModel
 import com.example.synapse.ui.components.NavItem
 import com.example.synapse.ui.components.SynapseAnimatedBottomNav
-import com.example.synapse.ui.components.FlashcardData
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,11 +37,18 @@ import kotlinx.coroutines.launch
 fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var selectedIndex by remember { mutableStateOf(0) }
+    var selectedIndex by remember { mutableIntStateOf(0) }
     var isProfileOpen by remember { mutableStateOf(false) }
     var isLevelsTrailOpen by remember { mutableStateOf(false) }
-    var dialPosition by remember { mutableStateOf(0f) }
-    var selectedFlashcard by remember { mutableStateOf<FlashcardData?>(null) }
+    var dialPosition by remember { mutableFloatStateOf(0f) }
+    
+    // Detailed navigation states for Flashcards from Firestore
+    var selectedSubject by remember { mutableStateOf<SubjectModel?>(null) }
+    var selectedTopic by remember { mutableStateOf<TopicModel?>(null) }
+    var selectedLesson by remember { mutableStateOf<LessonModel?>(null) }
+    var isShowingStudyCards by remember { mutableStateOf(false) }
+    
+    val isNavVisible = !isProfileOpen && !isLevelsTrailOpen && selectedSubject == null
     
     // Track if we came to settings from profile to provide correct back navigation
     var cameFromProfile by remember { mutableStateOf(false) }
@@ -82,6 +90,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                     ) {
                         selectedIndex = index
                         cameFromProfile = false
+                        selectedSubject = null // Reset subject navigation when using drawer
                         scope.launch { drawerState.close() }
                     }
                 }
@@ -94,8 +103,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                // Bottom bar only shows for the first 3 items (Dashboard, Quizzes, Goals)
-                if (selectedIndex < 3 && !isProfileOpen && !isLevelsTrailOpen && selectedFlashcard == null) {
+                if (selectedIndex < 3 && isNavVisible) {
                     SynapseAnimatedBottomNav(
                         selectedIndex = selectedIndex,
                         onItemSelected = { selectedIndex = it },
@@ -113,22 +121,57 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                             themeViewModel = themeViewModel, 
                             onBack = { isProfileOpen = false },
                             onSettingsClick = { 
-                                selectedIndex = 3 // Settings is now at index 3
+                                selectedIndex = 3 
                                 cameFromProfile = true
                                 isProfileOpen = false 
                             }
                         )
                     } else if (isLevelsTrailOpen) {
                         LevelsTrailScreen(authViewModel, onBack = { isLevelsTrailOpen = false })
-                    } else if (selectedFlashcard != null) {
-                        FlashcardChaptersScreen(flashcard = selectedFlashcard!!, isDark = isSystemInDarkTheme(), onBack = { selectedFlashcard = null })
+                    } else if (selectedSubject != null) {
+                        val isDark = isSystemInDarkTheme()
+                        if (isShowingStudyCards && selectedTopic != null && selectedLesson != null) {
+                            FlashcardChaptersScreen(
+                                subject = selectedSubject!!,
+                                topic = selectedTopic!!,
+                                lesson = selectedLesson!!,
+                                isDark = isDark,
+                                onBack = { isShowingStudyCards = false }
+                            )
+                        } else if (selectedLesson != null && selectedTopic != null) {
+                            FlashcardDetailScreen(
+                                subject = selectedSubject!!,
+                                topic = selectedTopic!!,
+                                lesson = selectedLesson!!,
+                                isDark = isDark,
+                                onBack = { selectedLesson = null },
+                                onOpenChapters = { isShowingStudyCards = true }
+                            )
+                        } else if (selectedTopic != null) {
+                            LessonListScreen(
+                                authViewModel = authViewModel,
+                                subject = selectedSubject!!,
+                                topic = selectedTopic!!,
+                                isDark = isDark,
+                                onBack = { selectedTopic = null },
+                                onLessonClick = { selectedLesson = it }
+                            )
+                        } else {
+                            TopicListScreen(
+                                authViewModel = authViewModel,
+                                subject = selectedSubject!!,
+                                isDark = isDark,
+                                onBack = { selectedSubject = null },
+                                onTopicClick = { selectedTopic = it }
+                            )
+                        }
                     } else {
                         when (selectedIndex) {
                             0 -> DashboardScreen(
                                 authViewModel = authViewModel, 
                                 onProfileClick = { isProfileOpen = true },
                                 onTrophyClick = { isLevelsTrailOpen = true },
-                                onFlashcardClick = { selectedFlashcard = it },
+                                onFlashcardClick = { selectedSubject = it },
                                 dialPosition = dialPosition
                             )
                             1 -> QuizzesScreen()
@@ -139,14 +182,23 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                                 onBack = {
                                     if (cameFromProfile) {
                                         isProfileOpen = true
-                                        selectedIndex = 0 // Return to dashboard background
+                                        selectedIndex = 0 
                                     } else {
-                                        selectedIndex = 0 // Normal back goes to dashboard
+                                        selectedIndex = 0 
                                     }
                                 }
                             )
                             else -> PlaceholderScreen(drawerScreens[selectedIndex])
                         }
+                    }
+                }
+                
+                if (authViewModel.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
             }
@@ -356,12 +408,12 @@ fun SettingsScreen(
             )
         }
         
-        // Individual Settings Tabs (Cards)
         SettingsTabCard(
             title = if (themeViewModel.isDarkMode) "Dark Mode" else "Light Mode",
             icon = if (themeViewModel.isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
             neonColor = neonColor,
-            cardBg = cardBg
+            cardBg = cardBg,
+            onClick = { themeViewModel.toggleDarkMode() }
         ) {
             Switch(
                 checked = themeViewModel.isDarkMode,
@@ -376,13 +428,48 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         SettingsTabCard(
-            title = "Logout",
+            title = "Cloud Sync",
+            icon = Icons.Default.CloudSync,
+            neonColor = Color(0xFF3B82F6),
+            cardBg = cardBg
+        ) {
+            Text("Active", color = Color(0xFF3B82F6), fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Fixed Seed DB button here by using a custom hex color for Orange
+        val maintenanceColor = Color(0xFFFFA500)
+        SettingsTabCard(
+            title = "Maintenance",
+            icon = Icons.Default.Build,
+            neonColor = maintenanceColor,
+            cardBg = cardBg,
+            onClick = { authViewModel.seedData() }
+        ) {
+            Text(
+                text = "SEED DB",
+                color = maintenanceColor,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SettingsTabCard(
+            title = "Account",
             icon = Icons.AutoMirrored.Filled.Logout,
             neonColor = Color.Red,
             cardBg = cardBg,
             onClick = { authViewModel.signOut() }
         ) {
-            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Red.copy(alpha = 0.3f))
+            Text(
+                text = "LOGOUT",
+                color = Color.Red,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp
+            )
         }
     }
 }

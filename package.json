@@ -1,0 +1,12 @@
+{
+  "name": "synapse-db-scripts",
+  "version": "1.0.0",
+  "description": "Scripts to seed and update Synapse Firebase Database",
+  "main": "index.js",
+  "scripts": {
+    "seed": "node scripts/seed-data.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

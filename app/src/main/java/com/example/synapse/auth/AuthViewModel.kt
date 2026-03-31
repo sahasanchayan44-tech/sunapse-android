@@ -5,11 +5,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.synapse.data.FirestoreRepository
+import com.example.synapse.models.*
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Immutable
@@ -31,24 +35,16 @@ data class MonthlyStat(val month: String, val correct: Int, val wrong: Int) {
 
 @Immutable
 data class UserProfileStats(
-    val correctAnswers: Int = 352,
-    val wrongAnswers: Int = 48,
-    val level: Int = 22,
-    val totalDays: Int = 76,
-    val currentStreak: Int = 35,
-    val friendsOnline: Int = 14,
-    val syncCoins: Int = 1250,
-    val totalPoints: Int = 450,
-    val subjectsStudiedToday: List<String> = listOf("Physics", "Mathematics", "Chemistry"),
-    val yearlyStats: List<MonthlyStat> = listOf(
-        MonthlyStat("Jan", 40, 10),
-        MonthlyStat("Feb", 45, 12),
-        MonthlyStat("Mar", 50, 8),
-        MonthlyStat("Apr", 38, 15),
-        MonthlyStat("May", 55, 5),
-        MonthlyStat("Jun", 60, 10),
-        MonthlyStat("Jul", 64, 8)
-    )
+    val correctAnswers: Int = 0,
+    val wrongAnswers: Int = 0,
+    val level: Int = 1,
+    val totalDays: Int = 0,
+    val currentStreak: Int = 0,
+    val friendsOnline: Int = 0,
+    val syncCoins: Int = 0,
+    val totalPoints: Int = 0,
+    val subjectsStudiedToday: List<String> = emptyList(),
+    val yearlyStats: List<MonthlyStat> = emptyList()
 ) {
     val accuracy: Int get() {
         val total = correctAnswers + wrongAnswers
@@ -84,6 +80,7 @@ data class UserProfileStats(
 
 class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth = Firebase.auth
+    private val repository = FirestoreRepository()
     
     var currentUser by mutableStateOf<FirebaseUser?>(auth.currentUser)
         private set
@@ -97,34 +94,88 @@ class AuthViewModel : ViewModel() {
     var userStats by mutableStateOf(UserProfileStats())
         private set
 
+    var subjects by mutableStateOf<List<SubjectModel>>(emptyList())
+        private set
+
     init {
         auth.addAuthStateListener { firebaseAuth: FirebaseAuth ->
             currentUser = firebaseAuth.currentUser
+            if (currentUser != null) {
+                loadUserData()
+            }
         }
     }
 
-    fun updateLevel(newLevel: Int) {
-        userStats = userStats.copy(level = newLevel.coerceIn(1, 100))
+    fun loadUserData() {
+        currentUser?.let { user ->
+            viewModelScope.launch {
+                val stats = repository.getUserStats(user.uid)
+                stats?.let {
+                    userStats = UserProfileStats(
+                        correctAnswers = it.correctAnswers,
+                        wrongAnswers = it.wrongAnswers,
+                        level = it.level,
+                        totalDays = it.totalDays,
+                        currentStreak = it.currentStreak,
+                        syncCoins = it.syncCoins,
+                        totalPoints = it.totalPoints,
+                        subjectsStudiedToday = it.subjectsStudiedToday,
+                        yearlyStats = it.yearlyStats.map { s -> MonthlyStat(s.month, s.correct, s.wrong) }
+                    )
+                }
+                subjects = repository.getSubjects()
+            }
+        }
     }
 
-    /**
-     * Adds points to the user and converts them to Sync Coins.
-     * Conversion rule: Every 10 points added also adds 1 Sync Coin.
-     */
+    fun seedData() {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                repository.seedDatabase(currentUser?.uid)
+                loadUserData()
+            } catch (e: Exception) {
+                error = e.message
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    suspend fun getTopics(subjectId: String) = repository.getTopicsForSubject(subjectId)
+    suspend fun getLessons(topicId: String) = repository.getLessonsForTopic(topicId)
+
+    fun updateLevel(newLevel: Int) {
+        userStats = userStats.copy(level = newLevel.coerceIn(1, 100))
+        saveStats()
+    }
+
     fun addPoints(points: Int) {
         val newPoints = userStats.totalPoints + points
-        val coinsToAdd = points / 10 // Example conversion: 10 points = 1 Sync Coin
+        val coinsToAdd = points / 10
         userStats = userStats.copy(
             totalPoints = newPoints,
             syncCoins = userStats.syncCoins + coinsToAdd
         )
+        saveStats()
     }
 
-    fun recordStudySession(subject: String) {
-        if (!userStats.subjectsStudiedToday.contains(subject)) {
-            userStats = userStats.copy(
-                subjectsStudiedToday = userStats.subjectsStudiedToday + subject
-            )
+    private fun saveStats() {
+        currentUser?.let { user ->
+            viewModelScope.launch {
+                val model = UserStatsModel(
+                    level = userStats.level,
+                    totalPoints = userStats.totalPoints,
+                    syncCoins = userStats.syncCoins,
+                    correctAnswers = userStats.correctAnswers,
+                    wrongAnswers = userStats.wrongAnswers,
+                    currentStreak = userStats.currentStreak,
+                    totalDays = userStats.totalDays,
+                    subjectsStudiedToday = userStats.subjectsStudiedToday,
+                    yearlyStats = userStats.yearlyStats.map { MonthlyStatModel(it.month, it.correct, it.wrong) }
+                )
+                repository.saveUserStats(user.uid, model)
+            }
         }
     }
 

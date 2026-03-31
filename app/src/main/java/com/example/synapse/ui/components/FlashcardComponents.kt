@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -17,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -97,12 +97,10 @@ fun FlashcardItem(
                 
                 cameraDistance = 12f * density
                 
-                // FIXED: Corrected property names for 3D shadow effect
                 shadowElevation = 40f * density
                 ambientShadowColor = Color.Black.copy(alpha = if (isDark) 0.6f else 0.4f)
                 spotShadowColor = Color.Black.copy(alpha = if (isDark) 0.6f else 0.4f)
                 
-                // Clipping to remove sharp corner artifacts
                 shape = RoundedCornerShape(32.dp)
                 clip = true
             }
@@ -122,7 +120,7 @@ fun FlashcardItem(
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = if (isDark) Color(0xFF121212) else Color.White,
+            color = Color.Black,
             shape = RoundedCornerShape(32.dp),
             border = BorderStroke(
                 1.5.dp, 
@@ -130,7 +128,6 @@ fun FlashcardItem(
                     listOf(Color.White.copy(alpha = 0.4f), Color.Transparent, Color.White.copy(alpha = 0.1f))
                 )
             ),
-            // Set elevation to 0 here because it's handled by the parent graphicsLayer
             shadowElevation = 0.dp
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -157,7 +154,7 @@ fun FlashcardItem(
                         text = data.title,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Light,
-                        color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.4f),
+                        color = Color.White.copy(alpha = 0.4f),
                         letterSpacing = 8.sp
                     )
 
@@ -215,7 +212,7 @@ fun FlashcardItem(
                         text = data.subtitle,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Black,
-                        color = if (isDark) Color.White else Color.Black,
+                        color = Color.White,
                         letterSpacing = (-1).sp,
                         lineHeight = 36.sp,
                         maxLines = 1,
@@ -239,7 +236,7 @@ fun ChapterCard(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(32.dp),
-        color = if (isDark) Color(0xFF1E1E1E) else Color.White,
+        color = Color.Black,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.3f)),
         shadowElevation = 8.dp
     ) {
@@ -271,7 +268,7 @@ fun ChapterCard(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
-                color = if (isDark) Color.White else Color.Black
+                color = Color.White
             )
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -280,7 +277,62 @@ fun ChapterCard(
                 text = "Tap to open chapter details and start learning.",
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
-                color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.6f)
+                color = Color.White.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+fun TopicListItem(
+    title: String,
+    isDark: Boolean,
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = if (isDark) Color(0xFF1E1E1E) else Color.White,
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f)),
+        shadowElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(accentColor.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDark) Color.White else Color.Black
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = (if (isDark) Color.White else Color.Black).copy(alpha = 0.3f)
             )
         }
     }

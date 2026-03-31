@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.synapse.auth.AuthViewModel
+import com.example.synapse.models.SubjectModel
 import com.example.synapse.ui.components.LevelTrophy
 import com.example.synapse.ui.components.NeumorphicCard
 import com.example.synapse.ui.components.FlashcardData
@@ -33,7 +34,7 @@ fun DashboardScreen(
     authViewModel: AuthViewModel, 
     onProfileClick: () -> Unit, 
     onTrophyClick: () -> Unit,
-    onFlashcardClick: (FlashcardData) -> Unit,
+    onFlashcardClick: (SubjectModel) -> Unit,
     dialPosition: Float = 0f
 ) {
     val stats = authViewModel.userStats
@@ -43,14 +44,8 @@ fun DashboardScreen(
     val primaryText = MaterialTheme.colorScheme.onSurface
     val accentColor = MaterialTheme.colorScheme.primary
     
-    val cards = remember {
-        listOf(
-            FlashcardData("QUANTUM", "PHYSICS", "CORE", Icons.Default.Bolt, Color(0xFF8E2DE2), Color(0xFF4A00E0), listOf("Mechanics", "Thermodynamics", "Optics", "Electromagnetism", "Nuclear Physics")),
-            FlashcardData("ORGANIC", "CHEMISTRY", "ELEMENT", Icons.Default.Science, Color(0xFF11998E), Color(0xFF38EF7D), listOf("Atomic Structure", "Periodic Table", "Chemical Bonding", "Organic Reactions", "Equilibrium")),
-            FlashcardData("ADVANCED", "MATHEMATICS", "LOGIC", Icons.Default.Functions, Color(0xFFF43F5E), Color(0xFF881337), listOf("Calculus", "Algebra", "Trigonometry", "Probability", "Statistics")),
-            FlashcardData("MOLECULAR", "BIOLOGY", "LIFE", Icons.Default.Spa, Color(0xFFFFA000), Color(0xFFFF5722), listOf("Cell Biology", "Genetics", "Evolution", "Human Physiology", "Plant Biology"))
-        )
-    }
+    val subjects = authViewModel.subjects
+    val isLoading = authViewModel.isLoading
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -111,14 +106,20 @@ fun DashboardScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Increased height handling: using weight(1f) to fill available space
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                DashboardFlashcardPager(cards, isDark, onFlashcardClick, dialPosition)
+                if (isLoading) {
+                    CircularProgressIndicator(color = accentColor)
+                } else if (subjects.isEmpty()) {
+                    // This will only show if data is finished loading and still empty
+                    Text("No subjects found. Use 'Seed DB' button to add data.", color = primaryText.copy(alpha = 0.5f))
+                } else {
+                    DashboardFlashcardPager(subjects, isDark, onFlashcardClick, dialPosition)
+                }
             }
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -128,15 +129,15 @@ fun DashboardScreen(
 
 @Composable
 fun DashboardFlashcardPager(
-    cards: List<FlashcardData>,
+    subjects: List<SubjectModel>,
     isDark: Boolean,
-    onCardClick: (FlashcardData) -> Unit,
+    onCardClick: (SubjectModel) -> Unit,
     dialPosition: Float
 ) {
-    val pagerState = rememberPagerState(pageCount = { cards.size })
+    val pagerState = rememberPagerState(pageCount = { subjects.size })
 
     LaunchedEffect(dialPosition) {
-        val targetPage = (dialPosition * cards.size).toInt().coerceIn(0, cards.size - 1)
+        val targetPage = (dialPosition * subjects.size).toInt().coerceIn(0, subjects.size - 1)
         if (pagerState.currentPage != targetPage) {
             pagerState.animateScrollToPage(
                 targetPage,
@@ -186,7 +187,7 @@ fun DashboardFlashcardPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f), // Allow pager to take up available height
+                .weight(1f),
             contentPadding = PaddingValues(horizontal = 48.dp),
             pageSpacing = 0.dp,
             beyondViewportPageCount = 1,
@@ -201,11 +202,29 @@ fun DashboardFlashcardPager(
                 }
             }
 
+            val subject = subjects[page]
+            // Map Firestore model back to UI model
+            val flashcardData = FlashcardData(
+                title = subject.title,
+                subtitle = subject.subtitle,
+                bottomText = subject.bottomText,
+                icon = when(subject.iconName) {
+                    "Bolt" -> Icons.Default.Bolt
+                    "Science" -> Icons.Default.Science
+                    "Functions" -> Icons.Default.Functions
+                    "Spa" -> Icons.Default.Spa
+                    else -> Icons.Default.Bolt
+                },
+                startColor = Color(android.graphics.Color.parseColor(subject.startColor)),
+                endColor = Color(android.graphics.Color.parseColor(subject.endColor)),
+                chapters = emptyList() // Chapters are fetched on the next screen
+            )
+
             FlashcardItem(
-                data = cards[page],
+                data = flashcardData,
                 pageOffsetProvider = { pageOffset.value },
                 isDark = isDark,
-                onClick = { onCardClick(cards[page]) }
+                onClick = { onCardClick(subject) }
             )
         }
     }
