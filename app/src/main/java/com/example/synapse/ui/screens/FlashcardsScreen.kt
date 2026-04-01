@@ -48,6 +48,18 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.sin
 
+private fun parseColor(colorString: String, fallback: Color = Color.Gray): Color {
+    return try {
+        if (colorString.isNotBlank() && colorString.startsWith("#")) {
+            Color(colorString.toColorInt())
+        } else {
+            fallback
+        }
+    } catch (e: Exception) {
+        fallback
+    }
+}
+
 @Composable
 fun TopicListScreen(
     authViewModel: AuthViewModel,
@@ -57,9 +69,17 @@ fun TopicListScreen(
     onTopicClick: (TopicModel) -> Unit
 ) {
     var topics by remember { mutableStateOf<List<TopicModel>>(emptyList()) }
+    val accentColor = parseColor(subject.startColor, MaterialTheme.colorScheme.primary)
     
     LaunchedEffect(subject.id) {
-        topics = authViewModel.getTopics(subject.id)
+        when (val result = authViewModel.getTopics(subject.id)) {
+            is com.example.synapse.data.FirestoreRepository.Result.Success -> {
+                topics = result.data
+            }
+            is com.example.synapse.data.FirestoreRepository.Result.Error -> {
+                // Handle error - keep empty list
+            }
+        }
     }
 
     Box(
@@ -89,7 +109,7 @@ fun TopicListScreen(
                         text = subject.subtitle,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(subject.startColor.toColorInt())
+                        color = accentColor
                     )
                     Text(
                         text = "TOPICS",
@@ -110,7 +130,7 @@ fun TopicListScreen(
                     TopicListItem(
                         title = topic.name,
                         isDark = isDark,
-                        accentColor = Color(subject.startColor.toColorInt()),
+                        accentColor = accentColor,
                         onClick = { onTopicClick(topic) }
                     )
                 }
@@ -129,13 +149,20 @@ fun LessonListScreen(
     onLessonClick: (LessonModel) -> Unit
 ) {
     var lessons by remember { mutableStateOf<List<LessonModel>>(emptyList()) }
-    val accentColor = Color(subject.startColor.toColorInt())
+    val accentColor = parseColor(subject.startColor, MaterialTheme.colorScheme.primary)
     
     // UI State for circular animation cards
     var selectedLessonForAnim by remember { mutableStateOf<LessonModel?>(null) }
 
     LaunchedEffect(topic.id) {
-        lessons = authViewModel.getLessons(topic.id)
+        when (val result = authViewModel.getLessons(topic.id)) {
+            is com.example.synapse.data.FirestoreRepository.Result.Success -> {
+                lessons = result.data
+            }
+            is com.example.synapse.data.FirestoreRepository.Result.Error -> {
+                // Handle error - keep empty list
+            }
+        }
     }
 
     Box(
@@ -541,7 +568,8 @@ fun FlashcardDetailScreen(
     onBack: () -> Unit,
     onOpenChapters: () -> Unit
 ) {
-    val accentColor = Color(subject.startColor.toColorInt())
+    val accentColor = parseColor(subject.startColor, MaterialTheme.colorScheme.primary)
+    val endColor = parseColor(subject.endColor, MaterialTheme.colorScheme.primary)
     
     val lessonFlashcard = FlashcardData(
         title = topic.name.uppercase(),
@@ -549,7 +577,7 @@ fun FlashcardDetailScreen(
         bottomText = subject.bottomText,
         icon = Icons.Default.Bolt,
         startColor = accentColor,
-        endColor = Color(subject.endColor.toColorInt()),
+        endColor = endColor,
         chapters = emptyList()
     )
 
@@ -635,7 +663,7 @@ fun FlashcardChaptersScreen(
     onBack: () -> Unit
 ) {
     val chapters = lesson.studyPoints
-    val accentColor = Color(subject.startColor.toColorInt())
+    val accentColor = parseColor(subject.startColor, MaterialTheme.colorScheme.primary)
     
     var topCardIndex by remember { mutableIntStateOf(0) }
     val offsetX = remember { Animatable(0f) }

@@ -56,15 +56,19 @@ fun ProfileScreen(
         val calendar = Calendar.getInstance(istTimeZone)
         val todayDate = calendar.get(Calendar.DAY_OF_MONTH)
         val todayMonth = calendar.get(Calendar.MONTH)
+        val todayYear = calendar.get(Calendar.YEAR)
         
-        // Go back to Monday of the current week
-        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        // Go back to Monday of the current week (or today if already Monday)
+        val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        val daysToMonday = if (currentDayOfWeek == Calendar.MONDAY) 0 else -(currentDayOfWeek - Calendar.MONDAY)
+        calendar.add(Calendar.DAY_OF_MONTH, daysToMonday)
         
         (0..6).map {
             val dayName = SimpleDateFormat("EEE", Locale.ENGLISH).format(calendar.time)
             val dayDate = calendar.get(Calendar.DAY_OF_MONTH)
             val dayMonth = calendar.get(Calendar.MONTH)
-            val isToday = dayDate == todayDate && dayMonth == todayMonth
+            val dayYear = calendar.get(Calendar.YEAR)
+            val isToday = dayDate == todayDate && dayMonth == todayMonth && dayYear == todayYear
             
             val result = Triple(dayName, dayDate.toString(), isToday)
             calendar.add(Calendar.DAY_OF_MONTH, 1)

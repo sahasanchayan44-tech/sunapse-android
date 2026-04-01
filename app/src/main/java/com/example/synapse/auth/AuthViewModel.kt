@@ -53,7 +53,7 @@ data class UserProfileStats(
     }
 
     val rankInfo: RankInfo get() {
-        val rankIdx = ((level - 1) / 10).coerceIn(0, 9) + 1
+        val rankIdx = ((level - 1) / 10).coerceIn(0, 9)
         val levelIdx = (level - 1) % 10
         
         val rankNames = listOf(
@@ -66,14 +66,14 @@ data class UserProfileStats(
             "Veteran", "Elite", "Prime", "Superior", "Champion"
         )
         
-        val currentRank = rankNames[rankIdx - 1]
+        val currentRank = rankNames[rankIdx]
         val currentTitle = levelTitles[levelIdx]
         
         return RankInfo(
             rankName = currentRank,
-            levelName = "$currentRank $currentTitle", // 100 Unique combinations
+            levelName = "$currentRank $currentTitle",
             level = level,
-            rankIndex = rankIdx
+            rankIndex = rankIdx + 1
         )
     }
 }
@@ -109,21 +109,35 @@ class AuthViewModel : ViewModel() {
     fun loadUserData() {
         currentUser?.let { user ->
             viewModelScope.launch {
-                val stats = repository.getUserStats(user.uid)
-                stats?.let {
-                    userStats = UserProfileStats(
-                        correctAnswers = it.correctAnswers,
-                        wrongAnswers = it.wrongAnswers,
-                        level = it.level,
-                        totalDays = it.totalDays,
-                        currentStreak = it.currentStreak,
-                        syncCoins = it.syncCoins,
-                        totalPoints = it.totalPoints,
-                        subjectsStudiedToday = it.subjectsStudiedToday,
-                        yearlyStats = it.yearlyStats.map { s -> MonthlyStat(s.month, s.correct, s.wrong) }
-                    )
+                when (val statsResult = repository.getUserStats(user.uid)) {
+                    is FirestoreRepository.Result.Success -> {
+                        statsResult.data?.let { stats ->
+                            userStats = UserProfileStats(
+                                correctAnswers = stats.correctAnswers,
+                                wrongAnswers = stats.wrongAnswers,
+                                level = stats.level,
+                                totalDays = stats.totalDays,
+                                currentStreak = stats.currentStreak,
+                                syncCoins = stats.syncCoins,
+                                totalPoints = stats.totalPoints,
+                                subjectsStudiedToday = stats.subjectsStudiedToday,
+                                yearlyStats = stats.yearlyStats.map { s -> MonthlyStat(s.month, s.correct, s.wrong) }
+                            )
+                        }
+                    }
+                    is FirestoreRepository.Result.Error -> {
+                        error = statsResult.message
+                    }
                 }
-                subjects = repository.getSubjects()
+                
+                when (val subjectsResult = repository.getSubjects()) {
+                    is FirestoreRepository.Result.Success -> {
+                        subjects = subjectsResult.data
+                    }
+                    is FirestoreRepository.Result.Error -> {
+                        error = subjectsResult.message
+                    }
+                }
             }
         }
     }
@@ -219,6 +233,8 @@ class AuthViewModel : ViewModel() {
 
     fun signOut() {
         auth.signOut()
+        userStats = UserProfileStats()
+        subjects = emptyList()
     }
 
     fun setErrorMessage(message: String) {

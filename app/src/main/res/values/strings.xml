@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Synapse kotlin</string>
+    <!-- TODO: Replace with your actual Google Web Client ID from Firebase Console -->
+    <string name="default_web_client_id">1062036038534-i4juslr9qf77ntjco47vi6ubnso1kjsd.apps.googleusercontent.com</string>
 </resources>

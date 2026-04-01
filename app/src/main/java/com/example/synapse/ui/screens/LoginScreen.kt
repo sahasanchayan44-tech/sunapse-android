@@ -70,8 +70,13 @@ fun LoginScreen(authViewModel: AuthViewModel) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
-                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-                authViewModel.signInWithCredential(credential)
+                val idToken = account.idToken
+                if (idToken != null) {
+                    val credential = GoogleAuthProvider.getCredential(idToken, null)
+                    authViewModel.signInWithCredential(credential)
+                } else {
+                    authViewModel.setErrorMessage("Google Sign-In failed: No ID token received")
+                }
             } catch (e: ApiException) {
                 Log.e("GoogleSignIn", "Sign in failed: code=${e.statusCode}")
                 authViewModel.setErrorMessage("Google Sign-In failed: ${e.message}")

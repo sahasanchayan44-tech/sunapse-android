@@ -31,6 +31,18 @@ import com.example.synapse.ui.components.FlashcardItem
 import kotlin.math.cos
 import kotlin.math.sin
 
+private fun parseDashboardColor(colorString: String, fallback: Color = Color(0xFF8E2DE2)): Color {
+    return try {
+        if (colorString.isNotBlank() && colorString.startsWith("#")) {
+            Color(android.graphics.Color.parseColor(colorString))
+        } else {
+            fallback
+        }
+    } catch (e: Exception) {
+        fallback
+    }
+}
+
 @Composable
 fun DashboardScreen(
     authViewModel: AuthViewModel, 
@@ -282,6 +294,8 @@ fun DashboardFlashcardPager(
             }
 
             val subject = subjects[page]
+            val startColor = parseDashboardColor(subject.startColor)
+            val endColor = parseDashboardColor(subject.endColor)
             // Map Firestore model back to UI model
             val flashcardData = FlashcardData(
                 title = subject.title,
@@ -297,8 +311,8 @@ fun DashboardFlashcardPager(
                     "Computer" -> Icons.Default.Computer
                     else -> Icons.Default.Bolt
                 },
-                startColor = Color(android.graphics.Color.parseColor(subject.startColor)),
-                endColor = Color(android.graphics.Color.parseColor(subject.endColor)),
+                startColor = startColor,
+                endColor = endColor,
                 chapters = emptyList() // Chapters are fetched on the next screen
             )
 

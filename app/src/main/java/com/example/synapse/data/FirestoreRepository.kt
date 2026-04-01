@@ -1,5 +1,6 @@
 package com.example.synapse.data
 
+import android.util.Log
 import com.example.synapse.models.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -10,70 +11,86 @@ import kotlinx.coroutines.tasks.await
 
 class FirestoreRepository {
     private val firestore = FirebaseFirestore.getInstance()
+    private val tag = "FirestoreRepository"
+
+    sealed class Result<out T> {
+        data class Success<T>(val data: T) : Result<T>()
+        data class Error(val message: String, val exception: Exception? = null) : Result<Nothing>()
+    }
 
     // --- Subjects ---
-    suspend fun getSubjects(): List<SubjectModel> {
+    suspend fun getSubjects(): Result<List<SubjectModel>> {
         return try {
-            firestore.collection("subjects")
+            val subjects = firestore.collection("subjects")
                 .orderBy("order", Query.Direction.ASCENDING)
                 .get()
                 .await()
                 .toObjects<SubjectModel>()
+            Result.Success(subjects)
         } catch (e: Exception) {
-            emptyList()
+            Log.e(tag, "Error fetching subjects", e)
+            Result.Error("Failed to load subjects: ${e.message}", e)
         }
     }
 
     // --- Topics (Top-level, filtered by subjectId) ---
-    suspend fun getTopicsForSubject(subjectId: String): List<TopicModel> {
+    suspend fun getTopicsForSubject(subjectId: String): Result<List<TopicModel>> {
         return try {
-            firestore.collection("topics")
+            val topics = firestore.collection("topics")
                 .whereArrayContains("subjectIds", subjectId)
                 .get()
                 .await()
                 .toObjects<TopicModel>()
                 .sortedBy { it.order }
+            Result.Success(topics)
         } catch (e: Exception) {
-            emptyList()
+            Log.e(tag, "Error fetching topics for subject $subjectId", e)
+            Result.Error("Failed to load topics: ${e.message}", e)
         }
     }
 
     // --- Lessons (Sub-collection of topics) ---
-    suspend fun getLessonsForTopic(topicId: String): List<LessonModel> {
+    suspend fun getLessonsForTopic(topicId: String): Result<List<LessonModel>> {
         return try {
-            firestore.collection("topics")
+            val lessons = firestore.collection("topics")
                 .document(topicId)
                 .collection("lessons")
                 .orderBy("order", Query.Direction.ASCENDING)
                 .get()
                 .await()
                 .toObjects<LessonModel>()
+            Result.Success(lessons)
         } catch (e: Exception) {
-            emptyList()
+            Log.e(tag, "Error fetching lessons for topic $topicId", e)
+            Result.Error("Failed to load lessons: ${e.message}", e)
         }
     }
 
     // --- User Stats ---
-    suspend fun getUserStats(userId: String): UserStatsModel? {
+    suspend fun getUserStats(userId: String): Result<UserStatsModel?> {
         return try {
-            firestore.collection("users")
+            val stats = firestore.collection("users")
                 .document(userId)
                 .get()
                 .await()
                 .toObject<UserStatsModel>()
+            Result.Success(stats)
         } catch (e: Exception) {
-            null
+            Log.e(tag, "Error fetching user stats for $userId", e)
+            Result.Error("Failed to load user stats: ${e.message}", e)
         }
     }
 
-    suspend fun saveUserStats(userId: String, stats: UserStatsModel) {
-        try {
+    suspend fun saveUserStats(userId: String, stats: UserStatsModel): Result<Unit> {
+        return try {
             firestore.collection("users")
                 .document(userId)
                 .set(stats, SetOptions.merge())
                 .await()
+            Result.Success(Unit)
         } catch (e: Exception) {
-            // Handle error
+            Log.e(tag, "Error saving user stats for $userId", e)
+            Result.Error("Failed to save stats: ${e.message}", e)
         }
     }
 
@@ -137,6 +154,7 @@ class FirestoreRepository {
                 saveUserStats(uid, userStats)
             }
         } catch (e: Exception) {
+            Log.e(tag, "Error seeding database", e)
             throw e
         }
     }
