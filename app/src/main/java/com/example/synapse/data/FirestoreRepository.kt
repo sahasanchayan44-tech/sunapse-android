@@ -105,7 +105,8 @@ class FirestoreRepository {
                 SubjectModel("biology_subject", "MOLECULAR", "BIOLOGY", "LIFE", "Spa", "#FFA000", "#FF5722", "Science", 4),
                 SubjectModel("economics_subject", "MACRO", "ECONOMICS", "TRADE", "Business", "#00C9FF", "#92FE9D", "Business", 5),
                 SubjectModel("history_subject", "ANCIENT", "HISTORY", "PAST", "History", "#f953c6", "#b91d73", "Humanities", 6),
-                SubjectModel("cs_subject", "DATA", "STRUCTURES", "CODE", "Computer", "#434343", "#000000", "CS", 7)
+                SubjectModel("cs_subject", "DATA", "STRUCTURES", "CODE", "Computer", "#434343", "#000000", "CS", 7),
+                SubjectModel("sample_subject", "SAMPLE", "TESTING", "DEMO", "Bolt", "#FF6B6B", "#EE5A5A", "Testing", 8)
             )
 
             for (subject in subjects) {

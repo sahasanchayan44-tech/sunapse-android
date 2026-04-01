@@ -5,7 +5,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
@@ -17,11 +18,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.TextStyle
 import com.example.synapse.auth.AuthViewModel
 import com.example.synapse.models.SubjectModel
 import com.example.synapse.ui.components.LevelTrophy
@@ -141,21 +151,14 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Category Bar Tab
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(end = 24.dp)
-            ) {
-                items(categories) { category ->
-                    val isSelected = category == selectedCategory
-                    CategoryTab(
-                        name = category,
-                        isSelected = isSelected,
-                        onClick = { selectedCategory = category }
-                    )
-                }
-            }
+            // Animated Category Tab Bar
+            AnimatedCategoryTabBar(
+                categories = categories,
+                selectedCategory = selectedCategory,
+                onCategorySelected = { selectedCategory = it },
+                accentColor = accentColor,
+                isDark = isDark
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -182,38 +185,122 @@ fun DashboardScreen(
 }
 
 @Composable
-fun CategoryTab(
-    name: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
+fun AnimatedCategoryTabBar(
+    categories: List<String>,
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
+    accentColor: Color,
+    isDark: Boolean
 ) {
-    val backgroundColor by animateColorAsState(
-        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-        label = "bg"
-    )
-    val contentColor by animateColorAsState(
-        if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-        label = "content"
-    )
-
-    Surface(
+    val tabHeight = 40.dp
+    val spacing = 8.dp
+    val horizontalPadding = 16.dp
+    val tabPaddingH = 12.dp
+    val tabPaddingV = 8.dp
+    
+    val selectedIndex = categories.indexOf(selectedCategory).coerceAtLeast(0)
+    val scrollState = rememberLazyListState()
+    
+    val textColor = if (isDark) Color(0xFF333333) else Color(0xFF555555)
+    val bgColor = if (isDark) Color(0xFFE0E0E0) else Color(0xFFE8E8E8)
+    
+    Box(
         modifier = Modifier
-            .clickable { onClick() }
-            .animateContentSize(),
-        shape = RoundedCornerShape(12.dp),
-        color = backgroundColor,
-        shadowElevation = if (isSelected) 4.dp else 0.dp
+            .fillMaxWidth()
+            .height(tabHeight + 24.dp)
+            .padding(vertical = 12.dp)
     ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center
+        LazyRow(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(spacing),
+            contentPadding = PaddingValues(horizontal = horizontalPadding)
         ) {
-            Text(
-                text = name,
-                fontSize = 14.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = contentColor
-            )
+            itemsIndexed(categories) { _, category ->
+                Box(
+                    modifier = Modifier
+                        .height(tabHeight)
+                        .padding(horizontal = tabPaddingH)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(bgColor)
+                        .clickable { onCategorySelected(category) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = category,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = textColor
+                    )
+                }
+            }
+        }
+        
+        val density = LocalDensity.current
+        
+        categories.forEachIndexed { index, category ->
+            val isSelected = category == selectedCategory
+            if (isSelected) {
+                val visibleItems = scrollState.layoutInfo.visibleItemsInfo
+                val matchedItem = visibleItems.firstOrNull { it.index == index }
+                
+                if (matchedItem != null) {
+                    val itemOffsetPx = matchedItem.offset
+                    val itemWidthPx = matchedItem.size
+                    val densityVal = density.density
+                    
+                    val offsetX = Dp(itemOffsetPx.toFloat() / densityVal) + horizontalPadding
+                    val width = Dp(itemWidthPx.toFloat() / densityVal)
+                    
+                    Box(
+                        modifier = Modifier
+                            .offset(x = offsetX)
+                            .width(width)
+                            .height(tabHeight)
+                            .shadow(
+                                elevation = 12.dp,
+                                shape = RoundedCornerShape(12.dp),
+                                spotColor = Color.Black.copy(alpha = 0.3f),
+                                ambientColor = Color.Black.copy(alpha = 0.1f)
+                            )
+                            .background(
+                                color = if (isDark) Color(0xFFF5F5F5) else Color.White,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = tabPaddingH)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = 0.5f),
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = category,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = accentColor
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
