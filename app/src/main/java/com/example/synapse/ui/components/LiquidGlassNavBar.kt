@@ -125,8 +125,8 @@ half4 main(float2 fragCoord) {
     float noise = (hash21(local * 0.13 + motion * 4.7) - 0.5) * 0.012;
 
     half3 color = refracted.rgb;
-    color += accentTint.rgb * (0.004 + 0.008 * centerFactor);
-    color += half3(0.014 * mask);
+    color += accentTint.rgb * (0.026 + 0.036 * centerFactor);
+    color += half3(0.010 * mask);
     color += half3(lightBand * 0.022);
     color += half3(topHighlight * 0.045);
     color += half3(innerRim * 0.12 + outerCaustic * 0.035);
@@ -347,16 +347,21 @@ private fun LiquidGlassIndicator(
                         }
 
                         drawRoundRect(
-                            color = Color.White.copy(alpha = if (isDark) 0.06f else 0.05f),
+                            color = accentColor.copy(alpha = if (isDark) 0.09f else 0.11f),
+                            cornerRadius = CornerRadius(radius, radius)
+                        )
+
+                        drawRoundRect(
+                            color = Color.White.copy(alpha = if (isDark) 0.045f else 0.04f),
                             cornerRadius = CornerRadius(radius, radius)
                         )
 
                         drawRoundRect(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = 0.035f),
+                                    accentColor.copy(alpha = 0.08f),
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.006f)
+                                    accentColor.copy(alpha = 0.03f)
                                 )
                             ),
                             topLeft = Offset(0f, size.height * 0.16f),
