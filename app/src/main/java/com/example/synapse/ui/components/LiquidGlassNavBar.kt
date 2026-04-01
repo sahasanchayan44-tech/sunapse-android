@@ -99,39 +99,37 @@ half4 main(float2 fragCoord) {
     float centerFactor = 1.0 - radialDistance;
     float2 direction = normalize(local - center + float2(0.001, 0.001));
 
-    float tension = 0.78 + motion * 0.42;
+    float tension = 0.82 + motion * 0.34;
     float ripple = sin(local.x * 0.085 - motion * 7.0) * sin(local.y * 0.055 + motion * 4.5);
-    float barrel = refractionStrength * pow(edgeFactor, 1.35) * tension;
-    float focusPull = refractionStrength * 0.12 * centerFactor;
+    float barrel = refractionStrength * pow(edgeFactor, 1.55) * tension;
+    float focusPull = refractionStrength * 0.08 * centerFactor;
     float2 sampleCoord =
         lensOrigin +
         local +
         direction * barrel -
         radial * focusPull +
-        float2(ripple * motion * 1.8, ripple * motion * 0.9);
+        float2(ripple * motion * 1.2, ripple * motion * 0.6);
 
     half4 refracted =
         inputTexture.eval(sampleCoord) +
-        inputTexture.eval(sampleCoord + float2(1.2, 0.0)) +
-        inputTexture.eval(sampleCoord + float2(-1.2, 0.0)) +
-        inputTexture.eval(sampleCoord + float2(0.0, 1.25)) +
-        inputTexture.eval(sampleCoord + float2(0.0, -1.1));
-    refracted /= 5.0;
+        inputTexture.eval(sampleCoord + float2(0.75, 0.0)) +
+        inputTexture.eval(sampleCoord + float2(-0.75, 0.0));
+    refracted /= 3.0;
 
-    float innerRim = smoothstep(2.3, 0.32, abs(maskDistance + 0.95));
-    float outerCaustic = smoothstep(4.2, 0.25, abs(maskDistance));
-    float topHighlight = smoothstep(0.46, 0.04, local.y / max(capsuleSize.y, 1.0));
-    topHighlight *= smoothstep(1.0, 0.12, abs(normalized.x));
-    float lightBand = smoothstep(0.52, 0.28, local.y / capsuleSize.y) * smoothstep(0.95, 0.2, abs(normalized.x));
-    float bottomShade = smoothstep(0.68, 1.0, local.y / capsuleSize.y) * 0.022;
-    float noise = (hash21(local * 0.13 + motion * 4.7) - 0.5) * 0.024;
+    float innerRim = smoothstep(1.8, 0.18, abs(maskDistance + 0.72));
+    float outerCaustic = smoothstep(2.8, 0.12, abs(maskDistance));
+    float topHighlight = smoothstep(0.28, 0.02, local.y / max(capsuleSize.y, 1.0));
+    topHighlight *= smoothstep(1.0, 0.22, abs(normalized.x));
+    float lightBand = smoothstep(0.42, 0.16, local.y / capsuleSize.y) * smoothstep(0.98, 0.22, abs(normalized.x));
+    float bottomShade = smoothstep(0.72, 1.0, local.y / capsuleSize.y) * 0.012;
+    float noise = (hash21(local * 0.13 + motion * 4.7) - 0.5) * 0.012;
 
     half3 color = refracted.rgb;
-    color += accentTint.rgb * (0.016 + 0.028 * centerFactor);
-    color += half3(0.06 * mask);
-    color += half3(lightBand * 0.08);
-    color += half3(topHighlight * 0.16);
-    color += half3(innerRim * 0.11 + outerCaustic * 0.06);
+    color += accentTint.rgb * (0.004 + 0.008 * centerFactor);
+    color += half3(0.014 * mask);
+    color += half3(lightBand * 0.022);
+    color += half3(topHighlight * 0.045);
+    color += half3(innerRim * 0.12 + outerCaustic * 0.035);
     color -= half3(bottomShade);
     color += half3(noise);
 
@@ -147,9 +145,10 @@ fun LiquidGlassNavBar(
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     accentColor: Color = MaterialTheme.colorScheme.primary,
+    glassTintColor: Color = accentColor,
     isDark: Boolean = isSystemInDarkTheme()
 ) {
-    val tabHeight = 46.dp
+    val tabHeight = 52.dp
     val horizontalPadding = 16.dp
     val itemSpacing = 8.dp
     val itemHorizontalPadding = 22.dp
@@ -196,7 +195,7 @@ fun LiquidGlassNavBar(
         animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMedium),
         label = "glassX"
     )
-    val refractionStrengthPx = with(density) { 6.dp.toPx() } + (lastTravelPx * 0.03f) + (motionPhase.value * with(density) { 5.dp.toPx() })
+    val refractionStrengthPx = with(density) { 9.dp.toPx() } + (lastTravelPx * 0.04f) + (motionPhase.value * with(density) { 6.dp.toPx() })
     val backgroundTexture = remember(rootSize, itemFrames, baseItemColor) {
         createNavBarTexture(
             size = rootSize,
@@ -243,7 +242,7 @@ fun LiquidGlassNavBar(
                 lensOrigin = Offset(animatedX, selectedFrame.top),
                 refractionStrength = refractionStrengthPx,
                 motion = motionPhase.value.coerceIn(-0.35f, 1f),
-                accentColor = accentColor,
+                accentColor = glassTintColor,
                 isDark = isDark
             )
         }
@@ -306,23 +305,12 @@ private fun LiquidGlassIndicator(
                 val radius = size.height / 2f
                 drawRoundRect(
                     color = if (isDark) {
-                        Color.White.copy(alpha = 0.06f)
+                        Color.White.copy(alpha = 0.025f)
                     } else {
-                        Color.Black.copy(alpha = 0.05f)
+                        Color.Black.copy(alpha = 0.025f)
                     },
                     topLeft = Offset(0f, 7.dp.toPx()),
-                    size = size.copy(height = size.height - 4.dp.toPx()),
-                    cornerRadius = CornerRadius(radius, radius)
-                )
-                drawRoundRect(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.06f),
-                            Color.Transparent
-                        ),
-                        center = Offset(size.width / 2f, size.height / 2.8f),
-                        radius = size.width * 0.72f
-                    ),
+                    size = size.copy(height = size.height - 6.dp.toPx()),
                     cornerRadius = CornerRadius(radius, radius)
                 )
             }
@@ -349,9 +337,9 @@ private fun LiquidGlassIndicator(
                             drawRoundRect(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.White.copy(alpha = 0.14f),
-                                        accentColor.copy(alpha = 0.04f),
-                                        Color.White.copy(alpha = 0.02f)
+                                        Color.White.copy(alpha = 0.045f),
+                                        Color.White.copy(alpha = 0.015f),
+                                        Color.Transparent
                                     )
                                 ),
                                 cornerRadius = CornerRadius(radius, radius)
@@ -359,69 +347,40 @@ private fun LiquidGlassIndicator(
                         }
 
                         drawRoundRect(
-                            color = Color.White.copy(alpha = if (isDark) 0.08f else 0.06f),
+                            color = Color.White.copy(alpha = if (isDark) 0.06f else 0.05f),
                             cornerRadius = CornerRadius(radius, radius)
                         )
 
                         drawRoundRect(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = 0.18f),
-                                    Color.White.copy(alpha = 0.03f),
-                                    Color.Black.copy(alpha = 0.015f)
-                                )
-                            ),
-                            cornerRadius = CornerRadius(radius, radius)
-                        )
-
-                        drawRoundRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.12f),
+                                    Color.White.copy(alpha = 0.035f),
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.012f)
+                                    Color.Black.copy(alpha = 0.006f)
                                 )
                             ),
-                            topLeft = Offset(0f, size.height * 0.1f),
-                            size = size.copy(height = size.height * 0.52f),
+                            topLeft = Offset(0f, size.height * 0.16f),
+                            size = size.copy(height = size.height * 0.38f),
                             cornerRadius = CornerRadius(radius, radius)
                         )
 
                         drawRoundRect(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = 0.28f),
-                                    Color.White.copy(alpha = 0.08f),
+                                    Color.White.copy(alpha = 0.10f),
+                                    Color.White.copy(alpha = 0.025f),
                                     Color.Transparent
                                 )
                             ),
-                            topLeft = Offset(12.dp.toPx(), 4.dp.toPx()),
-                            size = size.copy(width = size.width - 24.dp.toPx(), height = size.height * 0.34f),
+                            topLeft = Offset(16.dp.toPx(), 6.dp.toPx()),
+                            size = size.copy(width = size.width - 32.dp.toPx(), height = size.height * 0.16f),
                             cornerRadius = CornerRadius(radius, radius)
                         )
 
                         drawRoundRect(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.05f),
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = 0.05f)
-                                )
-                            ),
-                            style = Stroke(width = 1.dp.toPx()),
+                            color = Color.White.copy(alpha = if (isDark) 0.22f else 0.18f),
+                            style = Stroke(width = 1.1.dp.toPx()),
                             cornerRadius = CornerRadius(radius, radius)
-                        )
-
-                        drawRoundRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.18f),
-                                    Color.Transparent
-                                )
-                            ),
-                            topLeft = Offset(14.dp.toPx(), 5.dp.toPx()),
-                            size = size.copy(width = size.width - 28.dp.toPx(), height = 2.dp.toPx()),
-                            cornerRadius = CornerRadius(999f, 999f)
                         )
                     }
                 }

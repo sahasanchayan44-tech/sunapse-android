@@ -215,6 +215,7 @@ fun AnimatedCategoryTabBar(
         selectedIndex = selectedIndex,
         onItemSelected = { onCategorySelected(categories[it]) },
         accentColor = accentColor,
+        glassTintColor = Color(0xFFFF5A5F),
         isDark = isDark,
         modifier = Modifier.fillMaxWidth()
     )
