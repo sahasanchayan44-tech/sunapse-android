@@ -38,8 +38,25 @@ import com.example.synapse.ui.components.LevelTrophy
 import com.example.synapse.ui.components.NeumorphicCard
 import com.example.synapse.ui.components.FlashcardData
 import com.example.synapse.ui.components.FlashcardItem
+import com.example.synapse.ui.components.LiquidGlassNavBar
 import kotlin.math.cos
 import kotlin.math.sin
+
+private fun dashboardCategoryForSubject(subject: SubjectModel): String {
+    return when {
+        subject.category.equals("Science", ignoreCase = true) ||
+            subject.subtitle.uppercase() in listOf("PHYSICS", "CHEMISTRY", "BIOLOGY") -> "Science"
+        subject.category.equals("Maths", ignoreCase = true) ||
+            subject.subtitle.uppercase() == "MATHEMATICS" -> "Maths"
+        subject.category.equals("Humanities", ignoreCase = true) ||
+            subject.subtitle.uppercase() == "HISTORY" -> "Humanities"
+        subject.category.equals("Business", ignoreCase = true) ||
+            subject.subtitle.uppercase() == "ECONOMICS" -> "Business"
+        subject.category.uppercase() in listOf("CS", "COMPUTER SCIENCE") ||
+            subject.subtitle.uppercase() == "STRUCTURES" -> "Computer Science"
+        else -> "All"
+    }
+}
 
 private fun parseDashboardColor(colorString: String, fallback: Color = Color(0xFF8E2DE2)): Color {
     return try {
@@ -74,31 +91,17 @@ fun DashboardScreen(
     val categories = listOf("All", "Science", "Maths", "Humanities", "Business", "Computer Science")
     
     var selectedCategory by remember { mutableStateOf("All") }
-    
-    val filteredSubjects = remember(subjects, selectedCategory) {
-        when (selectedCategory) {
-            "All" -> subjects
-            "Science" -> subjects.filter { 
-                it.category.equals("Science", ignoreCase = true) || 
-                it.subtitle.uppercase() in listOf("PHYSICS", "CHEMISTRY", "BIOLOGY") 
+    var requestedPage by remember { mutableStateOf(0) }
+
+    val categoryAnchorPages = remember(subjects) {
+        buildMap {
+            put("All", 0)
+            categories.drop(1).forEach { category ->
+                val index = subjects.indexOfFirst { dashboardCategoryForSubject(it) == category }
+                if (index >= 0) {
+                    put(category, index)
+                }
             }
-            "Maths" -> subjects.filter { 
-                it.category.equals("Maths", ignoreCase = true) || 
-                it.subtitle.uppercase() == "MATHEMATICS" 
-            }
-            "Humanities" -> subjects.filter { 
-                it.category.equals("Humanities", ignoreCase = true) || 
-                it.subtitle.uppercase() == "HISTORY" 
-            }
-            "Business" -> subjects.filter { 
-                it.category.equals("Business", ignoreCase = true) || 
-                it.subtitle.uppercase() == "ECONOMICS" 
-            }
-            "Computer Science" -> subjects.filter { 
-                it.category.uppercase() in listOf("CS", "COMPUTER SCIENCE") || 
-                it.subtitle.uppercase() == "STRUCTURES" 
-            }
-            else -> subjects.filter { it.category == selectedCategory }
         }
     }
 
@@ -155,7 +158,10 @@ fun DashboardScreen(
             AnimatedCategoryTabBar(
                 categories = categories,
                 selectedCategory = selectedCategory,
-                onCategorySelected = { selectedCategory = it },
+                onCategorySelected = { category ->
+                    selectedCategory = category
+                    requestedPage = categoryAnchorPages[category] ?: 0
+                },
                 accentColor = accentColor,
                 isDark = isDark
             )
@@ -170,12 +176,23 @@ fun DashboardScreen(
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(color = accentColor)
-                } else if (filteredSubjects.isEmpty()) {
-                    Text("No subjects found in this category.", color = primaryText.copy(alpha = 0.5f))
+                } else if (subjects.isEmpty()) {
+                    Text("No subjects available right now.", color = primaryText.copy(alpha = 0.5f))
                 } else {
-                    key(selectedCategory) { // Reset pager state when category changes
-                        DashboardFlashcardPager(filteredSubjects, isDark, onFlashcardClick, dialPosition)
-                    }
+                    DashboardFlashcardPager(
+                        subjects = subjects,
+                        isDark = isDark,
+                        onCardClick = onFlashcardClick,
+                        dialPosition = dialPosition,
+                        requestedPage = requestedPage,
+                        onCurrentPageChanged = { page ->
+                            selectedCategory = if (page == 0) {
+                                "All"
+                            } else {
+                                dashboardCategoryForSubject(subjects[page])
+                            }
+                        }
+                    )
                 }
             }
 
@@ -192,117 +209,15 @@ fun AnimatedCategoryTabBar(
     accentColor: Color,
     isDark: Boolean
 ) {
-    val tabHeight = 40.dp
-    val spacing = 8.dp
-    val horizontalPadding = 16.dp
-    val tabPaddingH = 12.dp
-    val tabPaddingV = 8.dp
-    
     val selectedIndex = categories.indexOf(selectedCategory).coerceAtLeast(0)
-    val scrollState = rememberLazyListState()
-    
-    val textColor = if (isDark) Color(0xFF333333) else Color(0xFF555555)
-    val bgColor = if (isDark) Color(0xFFE0E0E0) else Color(0xFFE8E8E8)
-    
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(tabHeight + 24.dp)
-            .padding(vertical = 12.dp)
-    ) {
-        LazyRow(
-            state = scrollState,
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(spacing),
-            contentPadding = PaddingValues(horizontal = horizontalPadding)
-        ) {
-            itemsIndexed(categories) { _, category ->
-                Box(
-                    modifier = Modifier
-                        .height(tabHeight)
-                        .padding(horizontal = tabPaddingH)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(bgColor)
-                        .clickable { onCategorySelected(category) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = category,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = textColor
-                    )
-                }
-            }
-        }
-        
-        val density = LocalDensity.current
-        
-        categories.forEachIndexed { index, category ->
-            val isSelected = category == selectedCategory
-            if (isSelected) {
-                val visibleItems = scrollState.layoutInfo.visibleItemsInfo
-                val matchedItem = visibleItems.firstOrNull { it.index == index }
-                
-                if (matchedItem != null) {
-                    val itemOffsetPx = matchedItem.offset
-                    val itemWidthPx = matchedItem.size
-                    val densityVal = density.density
-                    
-                    val offsetX = Dp(itemOffsetPx.toFloat() / densityVal) + horizontalPadding
-                    val width = Dp(itemWidthPx.toFloat() / densityVal)
-                    
-                    Box(
-                        modifier = Modifier
-                            .offset(x = offsetX)
-                            .width(width)
-                            .height(tabHeight)
-                            .shadow(
-                                elevation = 12.dp,
-                                shape = RoundedCornerShape(12.dp),
-                                spotColor = Color.Black.copy(alpha = 0.3f),
-                                ambientColor = Color.Black.copy(alpha = 0.1f)
-                            )
-                            .background(
-                                color = if (isDark) Color(0xFFF5F5F5) else Color.White,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = tabPaddingH)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = 0.5f),
-                                                Color.Transparent
-                                            )
-                                        )
-                                    )
-                            )
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = category,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = accentColor
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    LiquidGlassNavBar(
+        items = categories,
+        selectedIndex = selectedIndex,
+        onItemSelected = { onCategorySelected(categories[it]) },
+        accentColor = accentColor,
+        isDark = isDark,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable
@@ -310,7 +225,9 @@ fun DashboardFlashcardPager(
     subjects: List<SubjectModel>,
     isDark: Boolean,
     onCardClick: (SubjectModel) -> Unit,
-    dialPosition: Float
+    dialPosition: Float,
+    requestedPage: Int,
+    onCurrentPageChanged: (Int) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { subjects.size })
 
@@ -321,6 +238,25 @@ fun DashboardFlashcardPager(
                 targetPage,
                 animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy)
             )
+        }
+    }
+
+    LaunchedEffect(requestedPage) {
+        val targetPage = requestedPage.coerceIn(0, subjects.size - 1)
+        if (pagerState.currentPage != targetPage) {
+            pagerState.animateScrollToPage(
+                targetPage,
+                animationSpec = spring(
+                    dampingRatio = 0.75f,
+                    stiffness = Spring.StiffnessMedium
+                )
+            )
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage, subjects) {
+        if (subjects.isNotEmpty()) {
+            onCurrentPageChanged(pagerState.currentPage.coerceIn(subjects.indices))
         }
     }
 
