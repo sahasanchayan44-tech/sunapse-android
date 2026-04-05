@@ -1,5 +1,6 @@
 package com.example.synapse.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -26,13 +27,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.example.synapse.auth.AuthViewModel
 import com.example.synapse.ui.components.NeumorphicCard
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
-fun QuizzesScreen() {
+fun QuizzesScreen(authViewModel: AuthViewModel) {
     var screenState by remember { mutableStateOf<QuizzesScreenState>(QuizzesScreenState.Browsing) }
     val primaryText = MaterialTheme.colorScheme.onSurface
     val accentColor = MaterialTheme.colorScheme.primary
+
+    // Handle back gesture to return to Browsing from Active Quiz
+    BackHandler(enabled = screenState is QuizzesScreenState.ActiveQuiz) {
+        screenState = QuizzesScreenState.Browsing
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AnimatedContent(
@@ -47,7 +56,8 @@ fun QuizzesScreen() {
                         accentColor = accentColor,
                         onStartQuiz = { category ->
                             screenState = QuizzesScreenState.ActiveQuiz(category, getMockQuestions(category.name))
-                        }
+                        },
+                        authViewModel = authViewModel
                     )
                 }
                 is QuizzesScreenState.ActiveQuiz -> {
@@ -72,21 +82,30 @@ sealed class QuizzesScreenState {
 fun BrowsingContent(
     primaryText: Color,
     accentColor: Color,
-    onStartQuiz: (QuizCategory) -> Unit
+    onStartQuiz: (QuizCategory) -> Unit,
+    authViewModel: AuthViewModel
 ) {
     var isChatMode by remember { mutableStateOf(false) }
+
+    // Handle back gesture to exit Chat Mode back to Static mode
+    BackHandler(enabled = isChatMode) {
+        isChatMode = false
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         Text(
             text = "QUIZZES",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Black,
-            color = primaryText,
-            letterSpacing = 2.sp
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.Black,
+                color = primaryText,
+                letterSpacing = 2.sp,
+                fontSize = 24.sp
+            )
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -170,9 +189,11 @@ fun TabButton(text: String, isSelected: Boolean, modifier: Modifier, onClick: ()
     ) {
         Text(
             text = text,
-            color = contentColor,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.labelLarge.copy(
+                color = contentColor,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            ),
             modifier = Modifier.zIndex(1f)
         )
     }
@@ -208,8 +229,10 @@ fun QuizGameplay(
             }
             Text(
                 text = "${currentQuestionIdx + 1} / ${questions.size}",
-                fontWeight = FontWeight.Bold,
-                color = accentColor
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor
+                )
             )
             Box(modifier = Modifier.size(48.dp)) // Spacer
         }
@@ -224,9 +247,11 @@ fun QuizGameplay(
                 Text(
                     text = currentQuestion.text,
                     modifier = Modifier.padding(24.dp),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
                 )
             }
 
@@ -251,7 +276,9 @@ fun QuizGameplay(
                             Text(
                                 text = option,
                                 modifier = Modifier.padding(16.dp),
-                                fontWeight = FontWeight.Medium
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                )
                             )
                         }
                     }
@@ -276,7 +303,10 @@ fun QuizGameplay(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text("NEXT")
+                Text(
+                    "NEXT",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
             }
         } else {
             // Result Screen
@@ -288,8 +318,20 @@ fun QuizGameplay(
                 tint = Color(0xFFFFD700)
             )
             Spacer(modifier = Modifier.height(24.dp))
-            Text("Quiz Completed!", fontSize = 24.sp, fontWeight = FontWeight.Black)
-            Text("Your Score: $score / ${questions.size}", fontSize = 18.sp, color = accentColor)
+            Text(
+                "Quiz Completed!",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Black
+                )
+            )
+            Text(
+                "Your Score: $score / ${questions.size}",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 18.sp,
+                    color = accentColor
+                )
+            )
             
             Spacer(modifier = Modifier.weight(1f))
             
@@ -298,7 +340,10 @@ fun QuizGameplay(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text("BACK TO MENU")
+                Text(
+                    "BACK TO MENU",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
             }
         }
     }
@@ -313,8 +358,8 @@ fun StaticQuizList(primaryText: Color, accentColor: Color, onStartQuiz: (QuizCat
         QuizCategory("History", "World Wars & Empires", 20, Icons.Default.HistoryEdu, Color(0xFFF43F5E))
     )
 
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(20.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
-        items(quizCategories) { category ->
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        quizCategories.forEach { category ->
             NeumorphicCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -335,12 +380,36 @@ fun StaticQuizList(primaryText: Color, accentColor: Color, onStartQuiz: (QuizCat
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(category.name, fontWeight = FontWeight.Black, color = primaryText)
-                        Text(category.desc, fontSize = 12.sp, color = primaryText.copy(alpha = 0.6f))
+                        Text(
+                            text = category.name,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                color = primaryText
+                            )
+                        )
+                        Text(
+                            text = category.desc,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 12.sp,
+                                color = primaryText.copy(alpha = 0.6f)
+                            )
+                        )
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("${category.qCount}", fontWeight = FontWeight.Bold, color = accentColor)
-                        Text("Questions", fontSize = 10.sp, color = primaryText.copy(alpha = 0.4f))
+                        Text(
+                            text = "${category.qCount}",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = accentColor
+                            )
+                        )
+                        Text(
+                            text = "Questions",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                color = primaryText.copy(alpha = 0.4f)
+                            )
+                        )
                     }
                 }
             }
@@ -368,7 +437,7 @@ fun QuizChatbot(
         SubjectGroup("Business", listOf("Economics", "Marketing", "Finance", "Management", "Entrepreneurship"), Icons.Default.BusinessCenter, Color(0xFFFFAB40))
     )
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.height(500.dp)) {
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -396,7 +465,7 @@ fun QuizChatbot(
                 value = message,
                 onValueChange = { message = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask AI for a quiz...") },
+                placeholder = { Text("Ask AI for a quiz...", style = MaterialTheme.typography.bodyMedium) },
                 shape = RoundedCornerShape(24.dp),
                 leadingIcon = {
                     IconButton(onClick = { showFilter = true }) {
@@ -406,7 +475,8 @@ fun QuizChatbot(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = accentColor,
                     unfocusedBorderColor = primaryText.copy(alpha = 0.1f)
-                )
+                ),
+                textStyle = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.width(12.dp))
             Surface(
@@ -416,7 +486,7 @@ fun QuizChatbot(
                         chatHistory.add(ChatMessage(userMsg, true))
                         message = ""
                         chatHistory.add(ChatMessage("I've generated a random quiz about '$userMsg'. Ready to start?", false))
-                        chatHistory.add(ChatMessage("START_QUIZ_ACTION|$userMsg", false))
+                        chatHistory.add(ChatMessage("START_QUI_ACTION|$userMsg", false))
                     }
                 },
                 color = accentColor
@@ -441,8 +511,10 @@ fun QuizChatbot(
             ) {
                 Text(
                     text = "Select a Subject",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black
+                    ),
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
                 
@@ -454,10 +526,12 @@ fun QuizChatbot(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = group.name.uppercase(),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = group.color,
-                                    letterSpacing = 1.sp
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = group.color,
+                                        letterSpacing = 1.sp
+                                    )
                                 )
                             }
                             Spacer(modifier = Modifier.height(12.dp))
@@ -468,7 +542,7 @@ fun QuizChatbot(
                                             message = subject
                                             showFilter = false
                                         },
-                                        label = { Text(subject) },
+                                        label = { Text(subject, style = MaterialTheme.typography.labelMedium) },
                                         selected = false,
                                         shape = RoundedCornerShape(12.dp)
                                     )
@@ -489,7 +563,7 @@ fun ChatBubble(
     accentColor: Color,
     onStartAiQuiz: (QuizCategory) -> Unit
 ) {
-    if (msg.text.startsWith("START_QUIZ_ACTION")) {
+    if (msg.text.startsWith("START_QUI_ACTION")) {
         val subject = msg.text.split("|").getOrElse(1) { "AI Subject" }
         Button(
             onClick = { 
@@ -498,7 +572,10 @@ fun ChatBubble(
             modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth(0.6f),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text("START AI QUIZ")
+            Text(
+                "START AI QUIZ",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+            )
         }
         return
     }
@@ -522,7 +599,7 @@ fun ChatBubble(
                 text = msg.text,
                 modifier = Modifier.padding(12.dp),
                 color = contentColor,
-                fontSize = 14.sp
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp)
             )
         }
     }

@@ -110,11 +110,13 @@ fun LoginScreen(authViewModel: AuthViewModel) {
                 
                 Text(
                     text = "SYNAPSE",
-                    fontSize = 40.sp,
-                    fontWeight = FontWeight.Black,
-                    fontStyle = FontStyle.Italic,
-                    letterSpacing = 4.sp,
-                    color = textColor
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontWeight = FontWeight.Black,
+                        fontStyle = FontStyle.Italic,
+                        letterSpacing = 4.sp,
+                        color = textColor,
+                        fontSize = 40.sp
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(48.dp))
@@ -226,9 +228,11 @@ fun ColumnScope.AuthContent(
 ) {
     Text(
         text = title,
-        fontSize = 28.sp,
-        fontWeight = FontWeight.Black,
-        color = textColor
+        style = MaterialTheme.typography.headlineLarge.copy(
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Black,
+            color = textColor
+        )
     )
 
     Spacer(modifier = Modifier.height(32.dp))
@@ -301,17 +305,21 @@ fun ColumnScope.AuthContent(
             )
             Text(
                 text = rememberMeLabel,
-                color = textSecondary,
-                fontSize = 14.sp
+                style = MaterialTheme.typography.labelLarge.copy(
+                    color = textSecondary,
+                    fontSize = 14.sp
+                )
             )
         }
         
         if (title == "Log In") {
             Text(
                 text = "Forgotten Password?",
-                color = primaryColor,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    color = primaryColor,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                ),
                 modifier = Modifier.clickable { /* Handle forgot password */ }
             )
         }
@@ -333,10 +341,12 @@ fun ColumnScope.AuthContent(
         } else {
             Text(
                 text = primaryActionText.uppercase(),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                color = Color.White
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                    color = Color.White
+                )
             )
         }
     }
@@ -345,9 +355,11 @@ fun ColumnScope.AuthContent(
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = "OR",
-            color = textSecondary.copy(alpha = 0.6f),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.labelMedium.copy(
+                color = textSecondary.copy(alpha = 0.6f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
         )
         Spacer(modifier = Modifier.height(24.dp))
         
@@ -371,17 +383,21 @@ fun ColumnScope.AuthContent(
                 ) {
                     Text(
                         text = "G",
-                        color = Color(0xFFEA4335),
-                        fontWeight = FontWeight.Black,
-                        fontSize = 14.sp
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = Color(0xFFEA4335),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 14.sp
+                        )
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Sign in with Google",
-                    color = textColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        color = textColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
                 )
             }
         }
@@ -394,14 +410,18 @@ fun ColumnScope.AuthContent(
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = if (splitText.size > 1) splitText[0] + "?" else splitText[0],
-            color = textSecondary,
-            fontSize = 14.sp
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = textSecondary,
+                fontSize = 14.sp
+            )
         )
         Text(
             text = if (splitText.size > 1) splitText[1] else "",
-            color = primaryColor,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = primaryColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            ),
             modifier = Modifier.clickable { onSecondaryAction() }
         )
     }
@@ -421,18 +441,22 @@ fun ColumnScope.VerifyContent(
 ) {
     Text(
         text = "Enter OTP",
-        fontSize = 28.sp,
-        fontWeight = FontWeight.Black,
-        color = textColor
+        style = MaterialTheme.typography.headlineLarge.copy(
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Black,
+            color = textColor
+        )
     )
     
     Spacer(modifier = Modifier.height(8.dp))
     
     Text(
         text = "OTP sent to your email address\n$email. Enter the code to proceed.",
-        fontSize = 14.sp,
-        color = textSecondary,
-        textAlign = TextAlign.Center
+        style = MaterialTheme.typography.bodyMedium.copy(
+            fontSize = 14.sp,
+            color = textSecondary,
+            textAlign = TextAlign.Center
+        )
     )
 
     Spacer(modifier = Modifier.height(48.dp))
@@ -452,9 +476,11 @@ fun ColumnScope.VerifyContent(
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = char,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (char.isNotEmpty()) primaryColor else textColor
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (char.isNotEmpty()) primaryColor else textColor
+                        )
                     )
                 }
             }
@@ -471,7 +497,15 @@ fun ColumnScope.VerifyContent(
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
     ) {
-        Text("CONTINUE", fontSize = 16.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic, color = Color.White)
+        Text(
+            "CONTINUE",
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Black,
+                fontStyle = FontStyle.Italic,
+                color = Color.White
+            )
+        )
     }
 
     Spacer(modifier = Modifier.height(24.dp))
@@ -479,14 +513,18 @@ fun ColumnScope.VerifyContent(
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = "Don't receive the OTP? ",
-            color = textSecondary,
-            fontSize = 14.sp
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = textSecondary,
+                fontSize = 14.sp
+            )
         )
         Text(
             text = "Resend OTP",
-            color = primaryColor,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = primaryColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            ),
             modifier = Modifier.clickable { onResend() }
         )
     }
@@ -539,9 +577,11 @@ fun ColumnScope.VerifyContent(
                                 } else {
                                     Text(
                                         text = key,
-                                        fontSize = 24.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = textColor
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = textColor
+                                        )
                                     )
                                 }
                             }
@@ -571,16 +611,18 @@ fun AuthTextField(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = label.uppercase(),
-            color = textSecondary.copy(alpha = 0.7f),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 1.sp
+            style = MaterialTheme.typography.labelSmall.copy(
+                color = textSecondary.copy(alpha = 0.7f),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp
+            )
         )
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(placeholder, color = textSecondary.copy(alpha = 0.3f), fontSize = 14.sp) },
+            placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyMedium.copy(color = textSecondary.copy(alpha = 0.3f), fontSize = 14.sp)) },
             leadingIcon = { Icon(leadingIcon, contentDescription = null, tint = primaryColor, modifier = Modifier.size(20.dp)) },
             trailingIcon = if (isPassword && onPasswordToggle != null) {
                 {
@@ -602,7 +644,8 @@ fun AuthTextField(
                 cursorColor = primaryColor,
                 focusedTextColor = textColor,
                 unfocusedTextColor = textColor
-            )
+            ),
+            textStyle = MaterialTheme.typography.bodyMedium
         )
     }
 }

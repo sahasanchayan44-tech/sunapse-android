@@ -29,7 +29,18 @@ data class LessonModel(
     val studyPoints: List<String> = emptyList()
 )
 
+data class TaskModel(
+    @DocumentId val id: String = "",
+    val title: String = "",
+    val isCompleted: Boolean = false,
+    val rewardCoins: Int = 5,
+    val relatedLessonId: String? = null, // If linked to an app action
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 data class UserStatsModel(
+    @DocumentId val userId: String = "",
+    val username: String = "User",
     val level: Int = 1,
     val totalPoints: Int = 0,
     val syncCoins: Int = 0,

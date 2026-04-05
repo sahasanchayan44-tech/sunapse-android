@@ -99,25 +99,34 @@ half4 main(float2 fragCoord) {
     float centerFactor = 1.0 - radialDistance;
     float2 direction = normalize(local - center + float2(0.001, 0.001));
 
-    float tension = 0.82 + motion * 0.34;
+    float tension = 0.92 + motion * 0.38;
     float ripple = sin(local.x * 0.085 - motion * 7.0) * sin(local.y * 0.055 + motion * 4.5);
-    float barrel = refractionStrength * pow(edgeFactor, 1.55) * tension;
-    float focusPull = refractionStrength * 0.08 * centerFactor;
+    float barrel = refractionStrength * pow(edgeFactor, 1.7) * tension;
+    float focusPull = refractionStrength * 0.12 * centerFactor;
+    float lowerLens = smoothstep(0.34, 0.96, local.y / capsuleSize.y);
+    float upperLens = 1.0 - smoothstep(0.0, 0.42, local.y / capsuleSize.y);
+    float2 curvedOffset = float2(
+        direction.x * barrel * 1.3,
+        direction.y * barrel * 0.52 + lowerLens * edgeFactor * refractionStrength * 0.34 - upperLens * centerFactor * refractionStrength * 0.08
+    );
     float2 sampleCoord =
         lensOrigin +
         local +
-        direction * barrel -
+        curvedOffset -
         radial * focusPull +
-        float2(ripple * motion * 1.2, ripple * motion * 0.6);
+        float2(ripple * motion * 1.1, ripple * motion * 0.5);
 
     half4 refracted =
         inputTexture.eval(sampleCoord) +
-        inputTexture.eval(sampleCoord + float2(0.75, 0.0)) +
-        inputTexture.eval(sampleCoord + float2(-0.75, 0.0));
-    refracted /= 3.0;
+        inputTexture.eval(sampleCoord + float2(1.8, 0.0)) +
+        inputTexture.eval(sampleCoord + float2(-1.8, 0.0)) +
+        inputTexture.eval(sampleCoord + float2(0.0, 1.35)) +
+        inputTexture.eval(sampleCoord + float2(0.0, -1.1));
+    refracted /= 5.0;
 
-    float innerRim = smoothstep(1.8, 0.18, abs(maskDistance + 0.72));
-    float outerCaustic = smoothstep(2.8, 0.12, abs(maskDistance));
+    float innerRim = smoothstep(1.6, 0.14, abs(maskDistance + 0.68));
+    float outerCaustic = smoothstep(2.0, 0.08, abs(maskDistance));
+    float lowerCaustic = lowerLens * smoothstep(1.8, 0.06, abs(maskDistance));
     float topHighlight = smoothstep(0.28, 0.02, local.y / max(capsuleSize.y, 1.0));
     topHighlight *= smoothstep(1.0, 0.22, abs(normalized.x));
     float lightBand = smoothstep(0.42, 0.16, local.y / capsuleSize.y) * smoothstep(0.98, 0.22, abs(normalized.x));
@@ -129,7 +138,7 @@ half4 main(float2 fragCoord) {
     color += half3(0.010 * mask);
     color += half3(lightBand * 0.022);
     color += half3(topHighlight * 0.045);
-    color += half3(innerRim * 0.12 + outerCaustic * 0.035);
+    color += half3(innerRim * 0.14 + outerCaustic * 0.06 + lowerCaustic * 0.08);
     color -= half3(bottomShade);
     color += half3(noise);
 

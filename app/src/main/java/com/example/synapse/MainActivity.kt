@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     if (authViewModel.currentUser != null) {
-                        MainScreen(themeViewModel, authViewModel)
+                        MainScreen(authViewModel, themeViewModel)
                     } else {
                         LoginScreen(authViewModel)
                     }

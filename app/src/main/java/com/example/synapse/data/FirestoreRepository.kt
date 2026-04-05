@@ -81,6 +81,20 @@ class FirestoreRepository {
         }
     }
 
+    suspend fun getAllUsersStats(): Result<List<UserStatsModel>> {
+        return try {
+            val stats = firestore.collection("users")
+                .orderBy("totalPoints", Query.Direction.DESCENDING)
+                .get()
+                .await()
+                .toObjects<UserStatsModel>()
+            Result.Success(stats)
+        } catch (e: Exception) {
+            Log.e(tag, "Error fetching all users stats", e)
+            Result.Error("Failed to load leaderboard: ${e.message}", e)
+        }
+    }
+
     suspend fun saveUserStats(userId: String, stats: UserStatsModel): Result<Unit> {
         return try {
             firestore.collection("users")
@@ -138,6 +152,8 @@ class FirestoreRepository {
             // 3. Seed User Stats if user is logged in
             currentUserId?.let { uid ->
                 val userStats = UserStatsModel(
+                    userId = uid,
+                    username = "Synapse Seeker",
                     level = 25,
                     totalPoints = 1200,
                     syncCoins = 50,
@@ -154,6 +170,18 @@ class FirestoreRepository {
                 )
                 saveUserStats(uid, userStats)
             }
+            
+            // Seed some fake leaderboard users
+            val dummyUsers = listOf(
+                UserStatsModel("user1", "Alex Quantum", 30, 2500, 100),
+                UserStatsModel("user2", "Bio Hazard", 28, 2100, 80),
+                UserStatsModel("user3", "Math Wizard", 22, 1850, 60),
+                UserStatsModel("user4", "Code Ninja", 15, 900, 30)
+            )
+            for (user in dummyUsers) {
+                firestore.collection("users").document(user.userId).set(user).await()
+            }
+
         } catch (e: Exception) {
             Log.e(tag, "Error seeding database", e)
             throw e

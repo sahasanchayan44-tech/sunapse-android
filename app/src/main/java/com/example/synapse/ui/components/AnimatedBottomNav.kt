@@ -2,6 +2,7 @@ package com.example.synapse.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -163,12 +164,27 @@ fun SynapseAnimatedBottomNav(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.title,
-                            modifier = Modifier.size(iconSize),
-                            tint = if (currentActiveIndex == index) Color.Transparent else inactiveColor
-                        )
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Soft glow for inactive icons (subtle)
+                            if (currentActiveIndex != index) {
+                                Canvas(modifier = Modifier.size(iconSize * 1.5f)) {
+                                    drawCircle(
+                                        color = inactiveColor.copy(alpha = 0.05f),
+                                        radius = size.minDimension / 2f,
+                                        center = center
+                                    )
+                                }
+                            }
+                            
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.title,
+                                modifier = Modifier.size(iconSize),
+                                tint = if (currentActiveIndex == index) Color.Transparent else inactiveColor
+                            )
+                        }
                     }
                 }
             }
@@ -194,15 +210,16 @@ fun SynapseAnimatedBottomNav(
                             val paint = Paint()
                             val frameworkPaint = paint.asFrameworkPaint()
                             frameworkPaint.color = Color.Transparent.toArgb()
+                            // Intense glow for active icon
                             frameworkPaint.setShadowLayer(
-                                24.dp.toPx(),
+                                32.dp.toPx(),
                                 0f,
-                                8.dp.toPx(),
-                                activeColor.copy(alpha = 0.8f).toArgb()
+                                4.dp.toPx(),
+                                activeColor.copy(alpha = 0.9f).toArgb()
                             )
                             canvas.drawCircle(
                                 center = Offset(size.width / 2f, size.height / 2f),
-                                radius = size.minDimension / 2.4f,
+                                radius = size.minDimension / 2.2f,
                                 paint = paint
                             )
                         }
@@ -218,12 +235,25 @@ fun SynapseAnimatedBottomNav(
             ) {
                 val currentIcon = items[currentActiveIndex].icon
 
-                Icon(
-                    imageVector = currentIcon,
-                    contentDescription = null,
-                    modifier = Modifier.size(iconSize + 4.dp),
-                    tint = activeColor
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    // Inner soft glow for the icon itself
+                    Canvas(modifier = Modifier.size(iconSize * 2f)) {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(activeColor.copy(alpha = 0.2f), Color.Transparent),
+                                center = center,
+                                radius = size.minDimension / 2f
+                            )
+                        )
+                    }
+                    
+                    Icon(
+                        imageVector = currentIcon,
+                        contentDescription = null,
+                        modifier = Modifier.size(iconSize + 4.dp),
+                        tint = activeColor
+                    )
+                }
             }
         }
     }

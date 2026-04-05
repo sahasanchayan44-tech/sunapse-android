@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -152,10 +153,12 @@ fun FlashcardItem(
                 ) {
                     Text(
                         text = data.title,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Light,
-                        color = Color.White.copy(alpha = 0.4f),
-                        letterSpacing = 8.sp
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Light,
+                            color = Color.White.copy(alpha = 0.4f),
+                            letterSpacing = 8.sp,
+                            fontSize = 24.sp
+                        )
                     )
 
                     Spacer(modifier = Modifier.weight(0.2f))
@@ -210,11 +213,13 @@ fun FlashcardItem(
 
                     Text(
                         text = data.subtitle,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                        letterSpacing = (-1).sp,
-                        lineHeight = 36.sp,
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontWeight = FontWeight.Black,
+                            color = Color.White,
+                            letterSpacing = (-1).sp,
+                            lineHeight = 36.sp,
+                            fontSize = 32.sp
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Visible,
                         softWrap = false,
@@ -265,19 +270,23 @@ fun ChapterCard(
             
             Text(
                 text = title,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Black,
-                textAlign = TextAlign.Center,
-                color = Color.White
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center,
+                    color = Color.White,
+                    fontSize = 24.sp
+                )
             )
             
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
                 text = "Tap to open chapter details and start learning.",
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-                color = Color.White.copy(alpha = 0.6f)
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    textAlign = TextAlign.Center,
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 14.sp
+                )
             )
         }
     }
@@ -324,9 +333,11 @@ fun TopicListItem(
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
                     text = title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isDark) Color.White else Color.Black
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White else Color.Black,
+                        fontSize = 18.sp
+                    )
                 )
             }
             Icon(

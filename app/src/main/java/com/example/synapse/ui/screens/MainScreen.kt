@@ -1,62 +1,85 @@
 package com.example.synapse.ui.screens
 
-import androidx.compose.foundation.BorderStroke
+import android.app.Activity
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.synapse.auth.AuthViewModel
 import com.example.synapse.models.LessonModel
 import com.example.synapse.models.SubjectModel
 import com.example.synapse.models.TopicModel
-import com.example.synapse.ui.ThemeViewModel
-import com.example.synapse.ui.components.NavItem
 import com.example.synapse.ui.components.SynapseAnimatedBottomNav
+import com.example.synapse.ui.ThemeViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
+fun MainScreen(
+    authViewModel: AuthViewModel = viewModel(),
+    themeViewModel: ThemeViewModel = viewModel()
+) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var selectedIndex by remember { mutableIntStateOf(0) }
-    var isProfileOpen by remember { mutableStateOf(false) }
-    var isLevelsTrailOpen by remember { mutableStateOf(false) }
     var dialPosition by remember { mutableFloatStateOf(0f) }
     
-    // Detailed navigation states for Flashcards from Firestore
+    var isProfileOpen by remember { mutableStateOf(false) }
+    var isLevelsTrailOpen by remember { mutableStateOf(false) }
     var selectedSubject by remember { mutableStateOf<SubjectModel?>(null) }
     var selectedTopic by remember { mutableStateOf<TopicModel?>(null) }
     var selectedLesson by remember { mutableStateOf<LessonModel?>(null) }
     var isShowingStudyCards by remember { mutableStateOf(false) }
-    
-    val isNavVisible = !isProfileOpen && !isLevelsTrailOpen && selectedSubject == null
-    
-    // Track if we came to settings from profile to provide correct back navigation
+    var isNavVisible by remember { mutableStateOf(true) }
     var cameFromProfile by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    var lastBackPressTime by remember { mutableLongStateOf(0L) }
+
+    BackHandler {
+        when {
+            drawerState.isOpen -> scope.launch { drawerState.close() }
+            isProfileOpen -> isProfileOpen = false
+            isLevelsTrailOpen -> isLevelsTrailOpen = false
+            isShowingStudyCards -> isShowingStudyCards = false
+            selectedLesson != null -> selectedLesson = null
+            selectedTopic != null -> selectedTopic = null
+            selectedSubject != null -> selectedSubject = null
+            selectedIndex != 0 -> selectedIndex = 0
+            else -> {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastBackPressTime < 2000) {
+                    (context as? Activity)?.finish()
+                } else {
+                    lastBackPressTime = currentTime
+                    Toast.makeText(context, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     val navItems = listOf(
-        NavItem(Icons.Default.Dashboard, "Dashboard", Color(0xFF3B82F6)),
-        NavItem(Icons.Default.Description, "Quizzes", Color(0xFF10B981)),
-        NavItem(Icons.Default.Flag, "Goals", Color(0xFFFF3838))
+        com.example.synapse.ui.components.NavItem(Icons.Default.Dashboard, "Dashboard", Color(0xFF3B82F6)),
+        com.example.synapse.ui.components.NavItem(Icons.Default.Description, "Quizzes", Color(0xFF10B981)),
+        com.example.synapse.ui.components.NavItem(Icons.Default.Flag, "Goals", Color(0xFFFF3838))
     )
 
     val drawerScreens = listOf(
@@ -174,11 +197,9 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                                 onFlashcardClick = { selectedSubject = it },
                                 dialPosition = dialPosition
                             )
-                            1 -> QuizzesScreen()
-                            2 -> GoalsScreen()
-                            3 -> SettingsScreen(
-                                themeViewModel = themeViewModel, 
-                                authViewModel = authViewModel,
+                            1 -> QuizzesScreen(authViewModel = authViewModel)
+                            2 -> GoalsScreen(authViewModel = authViewModel)
+                            3 -> SettingsPlaceholder(
                                 onBack = {
                                     if (cameFromProfile) {
                                         isProfileOpen = true
@@ -188,7 +209,7 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
                                     }
                                 }
                             )
-                            else -> PlaceholderScreen(drawerScreens[selectedIndex])
+                            else -> PlaceholderScreen(drawerScreens.getOrElse(selectedIndex) { "Unknown" })
                         }
                     }
                 }
@@ -207,58 +228,20 @@ fun MainScreen(themeViewModel: ThemeViewModel, authViewModel: AuthViewModel) {
 }
 
 @Composable
-fun SettingsTabCard(
-    title: String,
-    icon: ImageVector,
-    neonColor: Color,
-    cardBg: Color,
-    onClick: (() -> Unit)? = null,
-    content: @Composable () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .shadow(
-                elevation = 12.dp,
-                shape = RoundedCornerShape(20.dp),
-                spotColor = neonColor.copy(alpha = 0.4f),
-                ambientColor = neonColor.copy(alpha = 0.4f)
-            ),
-        shape = RoundedCornerShape(20.dp),
-        color = cardBg,
-        border = BorderStroke(
-            1.dp, 
-            Brush.linearGradient(
-                listOf(Color.White.copy(alpha = 0.3f), Color.Transparent)
+fun SettingsPlaceholder(onBack: () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Settings Screen",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold)
             )
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(18.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(neonColor.copy(alpha = 0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(imageVector = icon, contentDescription = null, tint = neonColor, modifier = Modifier.size(20.dp))
-                }
-                Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onBack) {
                 Text(
-                    text = title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "Back",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
                 )
             }
-            content()
         }
     }
 }
@@ -289,11 +272,11 @@ fun DrawerHeader() {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "STUDY MANAGER",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                letterSpacing = 1.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Black,
+                    fontStyle = FontStyle.Italic,
+                    letterSpacing = 1.sp
+                )
             )
         }
     }
@@ -323,8 +306,10 @@ fun ColumnScope.DrawerItem(title: String, icon: ImageVector, isSelected: Boolean
             Text(
                 text = title,
                 color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                fontStyle = FontStyle.Italic
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    fontStyle = FontStyle.Italic
+                )
             )
         }
     }
@@ -347,129 +332,27 @@ fun ColumnScope.LogoutButton(onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Logout,
                 contentDescription = null,
-                tint = Color.Red,
-                modifier = Modifier.size(24.dp)
+                tint = MaterialTheme.colorScheme.error
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Logout",
-                color = Color.Red,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-fun PlaceholderScreen(text: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = text, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-    }
-}
-
-@Composable
-fun SettingsScreen(
-    themeViewModel: ThemeViewModel, 
-    authViewModel: AuthViewModel,
-    onBack: () -> Unit
-) {
-    val isDark = isSystemInDarkTheme()
-    val neonColor = if (isDark) Color(0xFFBB86FC) else Color(0xFF6200EE)
-    val cardBg = MaterialTheme.colorScheme.surface
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack, 
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "SETTINGS",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Black,
-                fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-        
-        SettingsTabCard(
-            title = if (themeViewModel.isDarkMode) "Dark Mode" else "Light Mode",
-            icon = if (themeViewModel.isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
-            neonColor = neonColor,
-            cardBg = cardBg,
-            onClick = { themeViewModel.toggleDarkMode() }
-        ) {
-            Switch(
-                checked = themeViewModel.isDarkMode,
-                onCheckedChange = { themeViewModel.toggleDarkMode() },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = neonColor,
-                    checkedTrackColor = neonColor.copy(alpha = 0.5f)
-                )
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SettingsTabCard(
-            title = "Cloud Sync",
-            icon = Icons.Default.CloudSync,
-            neonColor = Color(0xFF3B82F6),
-            cardBg = cardBg
-        ) {
-            Text("Active", color = Color(0xFF3B82F6), fontWeight = FontWeight.Bold)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Fixed Seed DB button here by using a custom hex color for Orange
-        val maintenanceColor = Color(0xFFFFA500)
-        SettingsTabCard(
-            title = "Maintenance",
-            icon = Icons.Default.Build,
-            neonColor = maintenanceColor,
-            cardBg = cardBg,
-            onClick = { authViewModel.seedData() }
-        ) {
-            Text(
-                text = "SEED DB",
-                color = maintenanceColor,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SettingsTabCard(
-            title = "Account",
-            icon = Icons.AutoMirrored.Filled.Logout,
-            neonColor = Color.Red,
-            cardBg = cardBg,
-            onClick = { authViewModel.signOut() }
-        ) {
-            Text(
                 text = "LOGOUT",
-                color = Color.Red,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontStyle = FontStyle.Italic
+                )
             )
         }
+    }
+}
+
+@Composable
+fun PlaceholderScreen(title: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            text = "$title Screen",
+            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
+        )
     }
 }

@@ -47,6 +47,7 @@ fun ProfileScreen(
     val accentColor = MaterialTheme.colorScheme.primary
     
     var showStudyPlanner by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var selectedDayForPlanner by remember { mutableStateOf<String?>(null) }
     var showFullStats by remember { mutableStateOf(false) }
 
@@ -77,20 +78,31 @@ fun ProfileScreen(
     }
 
     AnimatedContent(
-        targetState = showStudyPlanner,
+        targetState = when {
+            showStudyPlanner -> 1
+            showSettings -> 2
+            else -> 0
+        },
         transitionSpec = {
             val duration = 400
             fadeIn(animationSpec = tween(duration)) togetherWith fadeOut(animationSpec = tween(duration))
         },
         label = "ProfileContentTransition"
-    ) { plannerOpen ->
-        when {
-            plannerOpen -> {
+    ) { screenIndex ->
+        when (screenIndex) {
+            1 -> {
                 StudyPlannerScreen(
                     selectedDay = selectedDayForPlanner ?: "Today",
                     accentColor = accentColor,
                     authViewModel = authViewModel,
                     onBack = { showStudyPlanner = false }
+                )
+            }
+            2 -> {
+                ProfileSettingsView(
+                    themeViewModel = themeViewModel,
+                    authViewModel = authViewModel,
+                    onBack = { showSettings = false }
                 )
             }
             else -> {
@@ -110,7 +122,7 @@ fun ProfileScreen(
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = primaryText)
                         }
-                        IconButton(onClick = onSettingsClick) {
+                        IconButton(onClick = { showSettings = true }) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings", tint = primaryText)
                         }
                     }
@@ -151,15 +163,19 @@ fun ProfileScreen(
                     // Name and Handle
                     Text(
                         text = user?.displayName ?: "Scholar",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Black,
-                        color = primaryText,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            color = primaryText
+                        ),
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
                     Text(
                         text = "@${user?.email?.split("@")?.get(0) ?: "student"}",
-                        fontSize = 14.sp,
-                        color = secondaryText,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 14.sp,
+                            color = secondaryText
+                        ),
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
 
@@ -264,6 +280,7 @@ fun ProfileSettingsView(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -275,9 +292,11 @@ fun ProfileSettingsView(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Settings",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Black,
-                color = primaryText
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Black,
+                    color = primaryText
+                )
             )
         }
 
@@ -302,6 +321,32 @@ fun ProfileSettingsView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Cloud Sync Card
+        SettingsItemCard(
+            title = "Cloud Sync",
+            icon = Icons.Default.CloudSync,
+            neonColor = Color(0xFF03A9F4),
+            cardBg = cardBg,
+            onClick = { authViewModel.loadUserData() }
+        ) {
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color(0xFF03A9F4).copy(alpha = 0.3f))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Seed DB Card
+        SettingsItemCard(
+            title = "Seed Database",
+            icon = Icons.Default.Storage,
+            neonColor = Color(0xFFFF9800),
+            cardBg = cardBg,
+            onClick = { authViewModel.seedData() }
+        ) {
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color(0xFFFF9800).copy(alpha = 0.3f))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Logout Card
         SettingsItemCard(
             title = "Logout",
@@ -312,6 +357,8 @@ fun ProfileSettingsView(
         ) {
             Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Red.copy(alpha = 0.3f))
         }
+        
+        Spacer(modifier = Modifier.height(40.dp))
     }
 }
 
@@ -362,9 +409,11 @@ fun SettingsItemCard(
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
                     text = title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 )
             }
             content()
@@ -405,15 +454,20 @@ fun StudyPlannerScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Study Planner",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Black,
-                color = primaryText
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Black,
+                    color = primaryText
+                )
             )
             Spacer(modifier = Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(authViewModel.userStats.syncCoins.toString(), fontWeight = FontWeight.Black, color = primaryText)
+                Text(
+                    text = authViewModel.userStats.syncCoins.toString(), 
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, color = primaryText)
+                )
             }
         }
 
@@ -427,16 +481,20 @@ fun StudyPlannerScreen(
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
                     text = selectedDay.uppercase(),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor,
-                    letterSpacing = 1.sp
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor,
+                        letterSpacing = 1.sp
+                    )
                 )
                 Text(
                     text = "Daily Schedule",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    color = primaryText
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        color = primaryText
+                    )
                 )
             }
         }
@@ -445,10 +503,12 @@ fun StudyPlannerScreen(
 
         Text(
             text = "TASKS (50 PTS EACH)",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = primaryText.copy(alpha = 0.5f),
-            letterSpacing = 2.sp
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = primaryText.copy(alpha = 0.5f),
+                letterSpacing = 2.sp
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -488,7 +548,10 @@ fun StudyPlannerScreen(
         ) {
             Icon(Icons.Default.Add, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("ADD NEW TASK", fontWeight = FontWeight.Bold)
+            Text(
+                "ADD NEW TASK", 
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+            )
         }
     }
 }
@@ -530,10 +593,12 @@ fun PlannerTaskItem(
             
             Text(
                 text = task,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (isCompleted) primaryText.copy(alpha = 0.3f) else primaryText,
-                style = if (isCompleted) androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else androidx.compose.ui.text.TextStyle.Default
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isCompleted) primaryText.copy(alpha = 0.3f) else primaryText,
+                    textDecoration = if (isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                )
             )
         }
     }
@@ -545,9 +610,15 @@ fun StatItem(value: String, label: String, icon: ImageVector, color: Color) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = color)
             Spacer(modifier = Modifier.width(4.dp))
-            Text(value, fontWeight = FontWeight.Black, fontSize = 18.sp)
+            Text(
+                text = value, 
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 18.sp)
+            )
         }
-        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = label, 
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        )
     }
 }
 
@@ -591,15 +662,19 @@ fun CalendarDayItem(
             }
             Text(
                 text = day, 
-                fontSize = 12.sp, 
-                color = if(isToday) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant, 
-                fontWeight = if(isToday) FontWeight.Bold else FontWeight.Normal
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 12.sp, 
+                    color = if(isToday) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant, 
+                    fontWeight = if(isToday) FontWeight.Bold else FontWeight.Normal
+                )
             )
             Text(
                 text = date, 
-                fontSize = 18.sp, 
-                fontWeight = FontWeight.Black, 
-                color = contentColor
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 18.sp, 
+                    fontWeight = FontWeight.Black, 
+                    color = contentColor
+                )
             )
         }
     }

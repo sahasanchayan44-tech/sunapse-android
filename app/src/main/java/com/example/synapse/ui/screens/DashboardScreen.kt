@@ -128,16 +128,20 @@ fun DashboardScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = rankInfo.rankName.uppercase(),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            color = accentColor,
-                            letterSpacing = 1.sp
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                color = accentColor,
+                                letterSpacing = 1.sp,
+                                fontSize = 10.sp
+                            )
                         )
                         Text(
                             text = rankInfo.levelName,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = primaryText
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = primaryText,
+                                fontSize = 14.sp
+                            )
                         )
                     }
                     NeumorphicCard(
@@ -177,7 +181,12 @@ fun DashboardScreen(
                 if (isLoading) {
                     CircularProgressIndicator(color = accentColor)
                 } else if (subjects.isEmpty()) {
-                    Text("No subjects available right now.", color = primaryText.copy(alpha = 0.5f))
+                    Text(
+                        text = "No subjects available right now.", 
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = primaryText.copy(alpha = 0.5f)
+                        )
+                    )
                 } else {
                     DashboardFlashcardPager(
                         subjects = subjects,
